@@ -67,7 +67,7 @@ export default function Header() {
           <div className="flex items-center gap-4 md:gap-6">
             {/* Write Link - Always visible or context dependent */}
             <Link
-              to={user?.role === 'writer' ? '/dashboard' : '/signup?role=writer'}
+              to={user?.role === 'writer' ? '/writers-dashboard' : '/signup?role=writer'}
               className="hidden sm:flex items-center gap-2 text-stone-500 hover:text-stone-900 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -102,7 +102,7 @@ export default function Header() {
                       <Link to="/" className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Home</Link>
                       <Link to="/reader" className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Reader Home</Link>
                       {user.role === 'writer' && (
-                        <Link to="/dashboard" className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Dashboard</Link>
+                        <Link to="/writers-dashboard" className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Writers</Link>
                       )}
                     </div>
 
@@ -121,7 +121,7 @@ export default function Header() {
                 <Link to="/login" className="text-base font-medium text-stone-600 hover:text-stone-900 hidden sm:block">
                   Sign In
                 </Link>
-                <Link to="/signup" className="bg-stone-900 text-white px-6 py-2.5 rounded-full text-base font-medium hover:bg-stone-800 transition-colors shadow-sm">
+                <Link to="/signup" className="bg-stone-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-stone-800 transition-colors shadow-sm sm:px-6 sm:py-2.5 sm:text-base">
                   Get Started
                 </Link>
               </>

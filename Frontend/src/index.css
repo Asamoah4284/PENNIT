@@ -2,9 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  font-family: "Work Sans", sans-serif;
+}
+
+/* ---- Background: lines and texture only (no yellow) ---- */
 @layer base {
   body {
     @apply bg-stone-50 text-stone-900 antialiased;
+    background-image:
+      repeating-linear-gradient(
+        transparent,
+        transparent 30px,
+        rgba(120, 113, 108, 0.09) 30px,
+        rgba(120, 113, 108, 0.09) 31px
+      ),
+      url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40h10M18 40h8M32 40h8M48 40h8M62 40h10M40 0v10M40 18v8M40 32v8M40 48v8M40 62v10' stroke='%2378716c' stroke-width='0.5' fill='none' opacity='0.12'/%3E%3Cpath d='M5 5l6 6M69 5l-6 6M5 69l6-6M69 69l-6-6' stroke='%2378716c' stroke-width='0.45' fill='none' opacity='0.1'/%3E%3Cpath d='M20 20l4 4M56 20l-4 4M20 56l4-4M56 56l-4-4' stroke='%2378716c' stroke-width='0.3' fill='none' opacity='0.06'/%3E%3C/svg%3E");
+    background-attachment: scroll, scroll;
+  }
+
+  /* Fine grain overlay for premium feel */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   }
 
   /* Hide scrollbar for Chrome, Safari and Opera */
@@ -16,5 +41,93 @@
   * {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
+  }
+}
+
+/* Decorative carved border – use on sections for reflection / artist feel */
+@layer components {
+  .bg-artistic-lines {
+    position: relative;
+  }
+  .bg-artistic-lines::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 6px,
+      rgba(120, 113, 108, 0.14) 6px,
+      rgba(120, 113, 108, 0.14) 7px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+  .carving-edge {
+    position: relative;
+  }
+  .carving-edge::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom,
+      transparent,
+      rgba(120, 113, 108, 0.08) 15%,
+      rgba(120, 113, 108, 0.18) 30%,
+      rgba(120, 113, 108, 0.18) 70%,
+      rgba(120, 113, 108, 0.08) 85%,
+      transparent
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Main content area (orbs removed – no yellow) */
+  .bg-wow-orbs {
+    position: relative;
+  }
+
+  /* Writing / carving texture for any white panel (e.g. landing hero) – bolder */
+  .bg-writing-carvings {
+    position: relative;
+  }
+  .bg-writing-carvings::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      repeating-linear-gradient(
+        transparent,
+        transparent 30px,
+        rgba(120, 113, 108, 0.08) 30px,
+        rgba(120, 113, 108, 0.08) 31px
+      ),
+      url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40h10M18 40h8M32 40h8M48 40h8M62 40h10M40 0v10M40 18v8M40 32v8M40 48v8M40 62v10' stroke='%2378716c' stroke-width='0.5' fill='none' opacity='0.1'/%3E%3Cpath d='M5 5l6 6M69 5l-6 6M5 69l6-6M69 69l-6-6' stroke='%2378716c' stroke-width='0.45' fill='none' opacity='0.08'/%3E%3Cpath d='M20 20l4 4M56 20l-4 4M20 56l4-4M56 56l-4-4' stroke='%2378716c' stroke-width='0.3' fill='none' opacity='0.06'/%3E%3C/svg%3E");
+  }
+
+  /* Decorative corner flourish (stone) */
+  .corner-flourish {
+    position: relative;
+  }
+  .corner-flourish::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 60px;
+    height: 60px;
+    border-top: 2px solid rgba(120, 113, 108, 0.2);
+    border-left: 2px solid rgba(120, 113, 108, 0.2);
+    border-radius: 4px 0 0 0;
+    pointer-events: none;
+    z-index: 1;
   }
 }

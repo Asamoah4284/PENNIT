@@ -15,7 +15,7 @@ export default function LandingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0C0C0C]">
+        <div className="min-h-screen bg-[#FDFCFB]">
             {/* Header */}
             <header className="absolute top-0 left-0 right-0 z-50 px-6 lg:px-12 py-6">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -30,7 +30,7 @@ export default function LandingPage() {
                     <div className="flex items-center gap-6">
                         <button
                             onClick={() => setShowAuthModal(true)}
-                            className="hidden sm:flex items-center gap-2 text-sm font-medium text-white/80 hover:text-white transition-colors"
+                            className="hidden sm:flex items-center gap-2 text-sm font-medium text-white hover:text-white/90 transition-colors"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
@@ -39,13 +39,13 @@ export default function LandingPage() {
                         </button>
                         <button
                             onClick={() => setShowAuthModal(true)}
-                            className="text-sm font-medium text-white/80 hover:text-white transition-colors"
+                            className="text-sm font-medium text-white hover:text-white/90 transition-colors"
                         >
                             Sign In
                         </button>
                         <button
                             onClick={() => setShowAuthModal(true)}
-                            className="text-sm font-black bg-yellow-400 text-stone-900 px-6 py-2.5 rounded-full hover:bg-yellow-300 transition-colors"
+                            className="text-xs font-bold sm:text-sm sm:font-black bg-yellow-400 text-stone-900 px-4 py-2 sm:px-6 sm:py-2.5 rounded-full hover:bg-yellow-300 transition-colors"
                         >
                             Get Started
                         </button>
@@ -55,35 +55,42 @@ export default function LandingPage() {
 
             {/* Hero Section */}
             <section className="relative min-h-screen flex">
-                {/* Left Side - Dark */}
-                <div className="w-full lg:w-1/2 bg-[#0C0C0C] flex flex-col justify-center px-6 lg:px-20 py-32 lg:py-20 relative overflow-hidden">
-                    {/* Background Glow */}
-                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-yellow-400/10 blur-[120px] rounded-full"></div>
-                    <div className="absolute top-1/2 -right-24 w-64 h-64 bg-yellow-400/5 blur-[100px] rounded-full"></div>
+                {/* Left Side - Premium Light with lines, carvings & wow effects */}
+                <div className="w-full lg:w-1/2 bg-[#FDFCFB] flex flex-col justify-center px-6 lg:px-20 py-32 lg:py-20 relative overflow-hidden bg-writing-carvings corner-flourish">
+                    {/* Paper texture */}
+                    <div className="absolute top-0 left-0 w-full h-full opacity-[0.04] pointer-events-none" style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/natural-paper.png')` }}></div>
+                    {/* Gold orbs – wow glow */}
+                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-yellow-400/15 blur-[120px] rounded-full"></div>
+                    <div className="absolute top-1/3 -right-20 w-72 h-72 bg-amber-300/12 blur-[100px] rounded-full"></div>
+                    <div className="absolute bottom-1/4 -left-16 w-64 h-64 bg-yellow-500/10 blur-[90px] rounded-full"></div>
+                    {/* Diagonal accent stripe */}
+                    <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-bl from-yellow-100/30 via-transparent to-transparent pointer-events-none"></div>
+                    {/* Bottom gradient */}
+                    <div className="absolute bottom-0 right-0 w-full h-1/2 bg-gradient-to-t from-stone-100/60 to-transparent pointer-events-none"></div>
 
                     <div className="max-w-xl relative z-10">
                         {/* Badge */}
-                        <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 backdrop-blur-md text-yellow-400/90 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase mb-10 animate-fade-in">
+                        <div className="inline-flex items-center gap-2 bg-stone-100 border border-stone-200 text-stone-600 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase mb-10 animate-fade-in">
                             <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-400"></span>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-500 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
                             </span>
                             Africa's Premier Writing Platform
                         </div>
 
-                        {/* Headline - Decreased size */}
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.1] mb-6 tracking-tight">
+                        {/* Headline */}
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-stone-900 leading-[1.1] mb-6 tracking-tight">
                             Where African
                             <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-500">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-600">
                                 Creativity
                             </span>
                             <br />
                             Thrives.
                         </h1>
 
-                        {/* Subheadline - Decreased size */}
-                        <p className="text-base md:text-lg text-stone-400 mb-10 max-w-md leading-relaxed">
+                        {/* Subheadline */}
+                        <p className="text-base md:text-lg text-stone-600 mb-10 max-w-md leading-relaxed">
                             A borderless home for African stories. Join a global community of writers and readers celebrating the richness of our heritage.
                         </p>
 
@@ -100,25 +107,45 @@ export default function LandingPage() {
                             </Link>
                             <button
                                 onClick={() => setShowAuthModal(true)}
-                                className="inline-flex items-center gap-3 bg-white/5 border border-white/10 text-white text-sm font-bold px-8 py-4 rounded-xl hover:bg-white/10 transition-all duration-300 backdrop-blur-sm"
+                                className="inline-flex items-center gap-3 bg-stone-100 border border-stone-200 text-stone-900 text-sm font-bold px-8 py-4 rounded-xl hover:bg-stone-200 transition-all duration-300"
                             >
                                 Start Writing
                             </button>
                         </div>
 
-                        {/* Stats - Decreased size */}
-                        <div className="grid grid-cols-3 gap-6 border-t border-white/5 pt-10">
-                            <div className="group">
-                                <div className="text-2xl font-black text-white group-hover:text-yellow-400 transition-colors">10K+</div>
-                                <div className="text-[10px] uppercase tracking-widest text-stone-500 font-bold mt-1">Writers</div>
+                        {/* Community & Stats */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-8 border-t border-stone-200 pt-10">
+                            {/* Avatar Stack */}
+                            <div className="flex items-center gap-4">
+                                <div className="flex -space-x-3">
+                                    {[10, 12, 15, 32].map((id) => (
+                                        <img
+                                            key={id}
+                                            src={`https://i.pravatar.cc/150?u=${id}`}
+                                            alt="User"
+                                            className="w-10 h-10 rounded-full border-[3px] border-[#FDFCFB] object-cover"
+                                        />
+                                    ))}
+                                    <div className="w-10 h-10 rounded-full border-[3px] border-[#FDFCFB] bg-yellow-400 flex items-center justify-center text-xs font-black text-stone-900">
+                                        +
+                                    </div>
+                                </div>
+                                <div className="text-xs font-bold text-stone-500">
+                                    Join <strong className="text-stone-900">10,000+</strong> writers
+                                </div>
                             </div>
-                            <div className="group">
-                                <div className="text-2xl font-black text-white group-hover:text-yellow-400 transition-colors">50K+</div>
-                                <div className="text-[10px] uppercase tracking-widest text-stone-500 font-bold mt-1">Stories</div>
-                            </div>
-                            <div className="group">
-                                <div className="text-2xl font-black text-white group-hover:text-yellow-400 transition-colors">1M+</div>
-                                <div className="text-[10px] uppercase tracking-widest text-stone-500 font-bold mt-1">Readers</div>
+
+                            <div className="hidden sm:block w-px h-10 bg-stone-200"></div>
+
+                            <div className="flex gap-10">
+                                <div>
+                                    <div className="text-2xl font-black text-stone-900">50K+</div>
+                                    <div className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Stories</div>
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-black text-stone-900">1M+</div>
+                                    <div className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Readers</div>
+                                </div>
                             </div>
                         </div>
                     </div>
