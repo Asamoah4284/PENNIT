@@ -161,10 +161,10 @@ export default function LandingPage() {
                 </div>
             </header>
 
-            {/* Hero Section */}
-            <section className="relative min-h-screen flex">
-                {/* Left Side - Premium Light with lines, carvings & wow effects */}
-                <div className="w-full lg:w-1/2 bg-[#FDFCFB] flex flex-col justify-center px-6 lg:px-20 py-32 lg:py-20 relative overflow-hidden bg-writing-carvings corner-flourish">
+            {/* Hero Section: on mobile show image first; on lg show text left + image right */}
+            <section className="relative min-h-screen flex flex-col lg:flex-row">
+                {/* Left Side - Text (hidden on mobile, shown on lg) */}
+                <div className="hidden lg:flex w-full lg:w-1/2 bg-[#FDFCFB] flex-col justify-center px-6 lg:px-20 py-32 lg:py-20 relative overflow-hidden bg-writing-carvings corner-flourish">
                     {/* Paper texture */}
                     <div className="absolute top-0 left-0 w-full h-full opacity-[0.04] pointer-events-none" style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/natural-paper.png')` }}></div>
                     {/* Gold orbs – wow glow */}
@@ -259,8 +259,8 @@ export default function LandingPage() {
                     </div>
                 </div>
 
-                {/* Right Side - Image */}
-                <div className="hidden lg:block w-1/2 relative overflow-hidden">
+                {/* Right Side - Image (shown first on mobile, right on desktop) */}
+                <div className="flex-1 min-h-screen lg:min-h-0 lg:w-1/2 relative overflow-hidden order-first lg:order-none">
                     <img
                         src="/images/hero-illustration.png"
                         alt="African creativity"

@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react'
-import { Link, useParams, useLocation } from 'react-router-dom'
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom'
 import { getWork } from '../lib/api'
 
 export default function ReadingPage() {
   const { id } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const [work, setWork] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const fromHome = location.state?.from === 'home'
   const backTo = fromHome ? '/home' : '/reader'
   const backLabel = fromHome ? 'Back to home' : 'Back to discover'
+  const goBack = () => navigate(backTo)
 
   useEffect(() => {
     if (!id) {
@@ -34,9 +36,9 @@ export default function ReadingPage() {
   if (!work) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <p className="text-stone-500 mb-4">Work not found.</p>
+        <p className="text-stone-500 mb-4">Story not found.</p>
         <button type="button" onClick={goBack} className="text-yellow-600 font-medium hover:underline">
-          ← Back
+          ← {backLabel}
         </button>
       </div>
     )
@@ -72,7 +74,9 @@ export default function ReadingPage() {
         </div>
       )}
       <div className="prose prose-stone max-w-none font-serif text-lg leading-relaxed text-stone-800 whitespace-pre-wrap">
-        {work.body}
+        {work.body != null && work.body !== '' ? work.body : (
+          <p className="text-stone-500 italic">No content available for this story.</p>
+        )}
       </div>
       <footer className="mt-12 pt-6 border-t border-stone-200">
         <p className="text-stone-500 text-sm">{work.readCount} reads</p>

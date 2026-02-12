@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "seed:writers": "node scripts/seed-writers.js",
+    "cleanup:placeholders": "node scripts/cleanup-placeholder-works.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
