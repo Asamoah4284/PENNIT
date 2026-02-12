@@ -10,6 +10,9 @@ const CATEGORIES = [
   { value: 'novel', label: 'Novel' },
 ]
 
+// Common themes/topics that cut across poems, short stories, and novels
+const QUICK_TOPICS = ['Family', 'Identity', 'Love', 'Ghana', 'Relationships', 'Faith']
+
 export default function WriterNewStoryPage() {
   const navigate = useNavigate()
   const user = getUser()
@@ -25,6 +28,18 @@ export default function WriterNewStoryPage() {
   const [cropImageSrc, setCropImageSrc] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [topicsInput, setTopicsInput] = useState('')
+
+  const toggleQuickTopic = (topic) => {
+    const parts = topicsInput
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+    const exists = parts.includes(topic)
+    const next = exists ? parts.filter((t) => t !== topic) : [...parts, topic]
+    const limited = next.slice(0, 5)
+    setTopicsInput(limited.join(', '))
+  }
 
   const handleThumbnailFileSelect = (e) => {
     const file = e.target.files?.[0]
@@ -66,6 +81,12 @@ export default function WriterNewStoryPage() {
     setSaveError('')
     setSaving(true)
     try {
+      const topics = topicsInput
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 5)
+
       const work = await createWork({
         title: title.trim(),
         authorId,
@@ -74,6 +95,7 @@ export default function WriterNewStoryPage() {
         excerpt: excerpt.trim(),
         body: body.trim(),
         thumbnailUrl: thumbnailUrl.trim(),
+        topics,
         status,
       })
       navigate(`/writers-dashboard/story/${work.id}`)
@@ -179,6 +201,42 @@ export default function WriterNewStoryPage() {
             rows={2}
             className="w-full px-3 py-2.5 rounded-lg border border-stone-200 resize-none"
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1.5">Topics</label>
+          <input
+            type="text"
+            value={topicsInput}
+            onChange={(e) => setTopicsInput(e.target.value)}
+            placeholder="Add up to 5 topics, separated by commas (e.g. family, identity, Ghana)"
+            className="w-full px-3 py-2.5 rounded-lg border border-stone-200 focus:ring-2 focus:ring-stone-400/40 focus:border-stone-400 text-sm"
+          />
+          <p className="mt-1 text-xs text-stone-400">
+            Topics help readers discover your story. Use common themes, locations, or genres.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {QUICK_TOPICS.map((topic) => {
+              const isActive = topicsInput
+                .split(',')
+                .map((t) => t.trim())
+                .filter(Boolean)
+                .includes(topic)
+              return (
+                <button
+                  type="button"
+                  key={topic}
+                  onClick={() => toggleQuickTopic(topic)}
+                  className={`px-3 py-1 rounded-full text-xs border ${
+                    isActive
+                      ? 'border-stone-900 bg-stone-900 text-white'
+                      : 'border-stone-300 text-stone-600 bg-white hover:bg-stone-50'
+                  }`}
+                >
+                  {topic}
+                </button>
+              )
+            })}
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">Story</label>

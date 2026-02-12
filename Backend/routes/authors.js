@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import Author from '../models/Author.js'
 import Work from '../models/Work.js'
+import { toggleFollowAuthor } from '../controllers/workSocialController.js'
 
 const router = Router()
 
@@ -30,5 +31,8 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch author' })
   }
 })
+
+/** POST /api/authors/:id/follow - Toggle follow/unfollow author for current user */
+router.post('/:id/follow', toggleFollowAuthor)
 
 export default router

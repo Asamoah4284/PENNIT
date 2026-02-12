@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getAuthor, getAssetUrl } from '../lib/api'
+import { getAuthor, getAssetUrl, toggleFollowAuthor } from '../lib/api'
+import { getUser } from '../lib/auth'
 
 const CATEGORY_LABELS = { poem: 'Poem', short_story: 'Short Story', novel: 'Novel' }
 
@@ -13,6 +14,9 @@ export default function AuthorPage() {
   const { id } = useParams()
   const [author, setAuthor] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [pendingFollow, setPendingFollow] = useState(false)
+
+  const user = getUser()
 
   useEffect(() => {
     if (!id) {
@@ -51,6 +55,27 @@ export default function AuthorPage() {
   const works = (author.works || []).filter((w) => w.status !== 'draft')
   const totalReads = works.reduce((sum, w) => sum + (w.readCount || 0), 0)
 
+  const followerCount = author.followerCount ?? 0
+
+  const handleToggleFollow = async () => {
+    if (!user) return
+    setPendingFollow(true)
+    try {
+      const result = await toggleFollowAuthor(author.id, user.id)
+      setAuthor((prev) =>
+        prev
+          ? {
+              ...prev,
+              followerCount: result.followerCount,
+              _following: result.following,
+            }
+          : prev
+      )
+    } finally {
+      setPendingFollow(false)
+    }
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 w-full min-w-0">
       <Link to="/reader" className="text-stone-500 text-sm hover:text-yellow-600 mb-6 inline-block">
@@ -59,20 +84,34 @@ export default function AuthorPage() {
 
       {/* Profile header */}
       <header className="mb-10">
-        <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-start">
-          <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-amber-100 to-yellow-200 flex items-center justify-center text-2xl sm:text-3xl font-bold text-amber-800 border-2 border-amber-200/80">
-            {author.penName?.charAt(0)?.toUpperCase() || '?'}
+        <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-start sm:items-center justify-between">
+          <div className="flex items-start gap-4 sm:gap-6">
+            <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-amber-100 to-yellow-200 flex items-center justify-center text-2xl sm:text-3xl font-bold text-amber-800 border-2 border-amber-200/80">
+              {author.penName?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 font-serif tracking-tight">
+                {author.penName || 'Author'}
+              </h1>
+              {author.bio && (
+                <p className="text-stone-600 mt-2 leading-relaxed max-w-xl">
+                  {author.bio}
+                </p>
+              )}
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 font-serif tracking-tight">
-              {author.penName || 'Author'}
-            </h1>
-            {author.bio && (
-              <p className="text-stone-600 mt-2 leading-relaxed max-w-xl">
-                {author.bio}
-              </p>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={handleToggleFollow}
+            disabled={pendingFollow || !user}
+            className={`mt-4 sm:mt-0 px-4 py-2 rounded-full text-sm font-medium border ${
+              author._following
+                ? 'border-stone-300 text-stone-700 bg-stone-100'
+                : 'border-amber-500 text-amber-700 bg-amber-50 hover:bg-amber-100'
+            }`}
+          >
+            {author._following ? 'Following' : 'Follow'}
+          </button>
         </div>
 
         {/* Stats */}
@@ -86,6 +125,11 @@ export default function AuthorPage() {
             <p className="text-stone-500 text-xs font-medium uppercase tracking-wider">Stories</p>
             <p className="text-2xl sm:text-3xl font-bold text-stone-900 mt-1">{works.length}</p>
             <p className="text-stone-400 text-xs mt-1">Published</p>
+          </div>
+          <div className="p-4 sm:p-5 rounded-2xl border border-stone-200 bg-white">
+            <p className="text-stone-500 text-xs font-medium uppercase tracking-wider">Followers</p>
+            <p className="text-2xl sm:text-3xl font-bold text-stone-900 mt-1">{followerCount}</p>
+            <p className="text-stone-400 text-xs mt-1">Readers following</p>
           </div>
         </div>
       </header>

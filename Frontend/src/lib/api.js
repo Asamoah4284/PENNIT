@@ -69,7 +69,7 @@ export async function uploadImage(file) {
 }
 
 /** Create a new work (story) - for writers. status: 'draft' | 'published' (default 'published') */
-export async function createWork({ title, authorId, category, genre, excerpt, body, thumbnailUrl, status = 'published' }) {
+export async function createWork({ title, authorId, category, genre, excerpt, body, thumbnailUrl, topics, status = 'published' }) {
   const res = await fetch(`${API_BASE}/api/works`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -81,6 +81,7 @@ export async function createWork({ title, authorId, category, genre, excerpt, bo
       excerpt: excerpt || '',
       body: body || '',
       thumbnailUrl: thumbnailUrl || '',
+      topics: topics && Array.isArray(topics) ? topics : topics,
       status: status === 'draft' ? 'draft' : 'published',
     }),
   })
@@ -107,4 +108,84 @@ export async function deleteWork(id) {
     throw new Error(err.error || 'Request failed')
   }
   if (res.status !== 204) return res.json().catch(() => ({}))
+}
+
+/** --- Social APIs: comments, claps, saves, follows, read tracking --- */
+
+export async function createWorkComment(workId, { content, userId }) {
+  const res = await fetch(`${API_BASE}/api/works/${workId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content, userId }),
+  })
+  return handleResponse(res)
+}
+
+export async function getWorkComments(workId, { limit = 50, offset = 0 } = {}) {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  const res = await fetch(`${API_BASE}/api/works/${workId}/comments?${params.toString()}`)
+  return handleResponse(res)
+}
+
+export async function toggleWorkClap(workId, userId) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/works/${workId}/clap`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ userId }),
+  })
+  return handleResponse(res)
+}
+
+export async function getWorkClapStatus(workId, userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/works/${workId}/clap`, { headers })
+  return handleResponse(res)
+}
+
+export async function toggleSaveWork(workId, userId) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/works/${workId}/save`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ userId }),
+  })
+  return handleResponse(res)
+}
+
+export async function getSavedWorks(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/works/me/saved`, { headers })
+  return handleResponse(res)
+}
+
+export async function toggleFollowAuthor(authorId, userId) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/authors/${authorId}/follow`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ userId }),
+  })
+  return handleResponse(res)
+}
+
+export async function trackPostView(postId) {
+  const res = await fetch(`${API_BASE}/api/posts/${postId}/view`, {
+    method: 'POST',
+  })
+  return handleResponse(res)
+}
+
+export async function trackPostRead(postId, { progressPercentage, timeSpent }) {
+  const res = await fetch(`${API_BASE}/api/posts/${postId}/read`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ progressPercentage, timeSpent }),
+  })
+  return handleResponse(res)
 }

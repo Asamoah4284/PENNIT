@@ -1,5 +1,13 @@
 import { Router } from 'express'
 import Work from '../models/Work.js'
+import {
+  createWorkComment,
+  listWorkComments,
+  toggleWorkClap,
+  getWorkClapStatus,
+  toggleSaveWork,
+  listSavedWorks,
+} from '../controllers/workSocialController.js'
 
 const router = Router()
 
@@ -35,6 +43,28 @@ router.get('/', async (req, res) => {
   }
 })
 
+/** Normalise topics array from body (strings only, trimmed, max 5). */
+function normalizeTopics(raw) {
+  if (!raw) return []
+  let list = []
+  if (Array.isArray(raw)) {
+    list = raw
+  } else if (typeof raw === 'string') {
+    list = raw.split(',').map((t) => t.trim())
+  } else {
+    return []
+  }
+  const unique = Array.from(
+    new Set(
+      list
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .map((t) => (t.length > 40 ? t.slice(0, 40) : t))
+    )
+  )
+  return unique.slice(0, 5)
+}
+
 /** POST /api/works - Create a new work */
 router.post('/', async (req, res) => {
   try {
@@ -52,6 +82,8 @@ router.post('/', async (req, res) => {
     if (!isDraft && (!body || typeof body !== 'string')) {
       return res.status(400).json({ error: 'Story body is required to publish' })
     }
+    const topics = normalizeTopics(req.body.topics)
+
     const work = await Work.create({
       title: title.trim(),
       authorId,
@@ -62,6 +94,7 @@ router.post('/', async (req, res) => {
       readCount: 0,
       thumbnailUrl: (thumbnailUrl || '').trim(),
       status: status === 'draft' ? 'draft' : 'published',
+      topics,
     })
     const populated = await Work.findById(work._id)
       .populate('authorId', 'penName avatarUrl')
@@ -110,6 +143,9 @@ router.put('/:id', async (req, res) => {
     if (excerpt !== undefined) work.excerpt = (excerpt || '').trim()
     if (body !== undefined) work.body = body.trim()
     if (thumbnailUrl !== undefined) work.thumbnailUrl = (thumbnailUrl || '').trim()
+    if (req.body.topics !== undefined) {
+      work.topics = normalizeTopics(req.body.topics)
+    }
     if (status !== undefined && ['draft', 'published'].includes(status)) work.status = status
     await work.save()
     const populated = await Work.findById(work._id)
@@ -136,5 +172,23 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete story' })
   }
 })
+
+/** POST /api/works/:id/comments - Create a comment on a work */
+router.post('/:id/comments', createWorkComment)
+
+/** GET /api/works/:id/comments - List comments for a work */
+router.get('/:id/comments', listWorkComments)
+
+/** POST /api/works/:id/clap - Toggle clap for a work */
+router.post('/:id/clap', toggleWorkClap)
+
+/** GET /api/works/:id/clap - Get clap status for current user */
+router.get('/:id/clap', getWorkClapStatus)
+
+/** POST /api/works/:id/save - Toggle save/unsave work */
+router.post('/:id/save', toggleSaveWork)
+
+/** GET /api/users/me/saved-works - List saved works for current user */
+router.get('/me/saved', listSavedWorks)
 
 export default router
