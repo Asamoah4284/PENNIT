@@ -1,5 +1,7 @@
-/** Backend base URL from .env (no trailing slash). Used by all API and asset URLs. */
-export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+/** Backend base URL. Production: always backend; dev: empty = proxy to localhost. */
+const raw = (import.meta.env.VITE_API_URL || '').trim()
+const url = import.meta.env.PROD && !raw ? 'https://pennit.onrender.com' : raw
+export const API_BASE = url.replace(/\/$/, '')
 
 /** Resolve asset URL (e.g. thumbnail, avatar). Relative paths like /uploads/... get API_BASE prepended. */
 export function getAssetUrl(url) {
