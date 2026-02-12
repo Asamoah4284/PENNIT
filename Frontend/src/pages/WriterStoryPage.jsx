@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { getWork, updateWork, deleteWork, uploadImage } from '../lib/api'
+import ImageCropModal from '../components/ImageCropModal'
 
 const CATEGORIES = [
   { value: 'short_story', label: 'Short story' },
@@ -43,6 +44,7 @@ export default function WriterStoryPage() {
   const [body, setBody] = useState('')
   const [thumbnailUrl, setThumbnailUrl] = useState('')
   const [thumbnailUploading, setThumbnailUploading] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(false)
@@ -80,40 +82,79 @@ export default function WriterStoryPage() {
     setSaveError('')
   }
 
-  const handleSave = async (e) => {
-    e.preventDefault()
+  const handlePublish = async () => {
+    if (!work?.id) return
+    setSaveError('')
+    setSaving(true)
+    try {
+      const updated = await updateWork(work.id, { status: 'published' })
+      setWork(updated)
+    } catch (err) {
+      setSaveError(err?.message || 'Failed to publish.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveWork = async (publish = false) => {
     if (!work?.id || !title.trim()) return
     setSaveError('')
     setSaving(true)
     try {
-      const updated = await updateWork(work.id, {
+      const payload = {
         title: title.trim(),
         category,
         genre: work.genre || 'General',
         excerpt: excerpt.trim(),
         body: body.trim(),
         thumbnailUrl: thumbnailUrl.trim(),
-      })
+      }
+      if (publish) payload.status = 'published'
+      const updated = await updateWork(work.id, payload)
       setWork(updated)
       setIsEditing(false)
     } catch (err) {
-      setSaveError(err?.message || 'Failed to save.')
+      setSaveError(err?.message || (publish ? 'Failed to publish.' : 'Failed to save.'))
     } finally {
       setSaving(false)
     }
   }
 
-  const handleThumbnailChange = async (e) => {
+  const handleSave = async (e) => {
+    e.preventDefault()
+    saveWork(false)
+  }
+
+  const handleSaveAndPublish = (e) => {
+    e.preventDefault()
+    saveWork(true)
+  }
+
+  const handleThumbnailFileSelect = (e) => {
     const file = e.target.files?.[0]
     if (!file || !file.type.startsWith('image/')) return
+    if (cropImageSrc) URL.revokeObjectURL(cropImageSrc)
+    setCropImageSrc(URL.createObjectURL(file))
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleCropComplete = async (blob) => {
+    if (!blob) return
     setThumbnailUploading(true)
     try {
+      const file = new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' })
       const { url } = await uploadImage(file)
       setThumbnailUrl(url)
+      if (cropImageSrc) URL.revokeObjectURL(cropImageSrc)
+      setCropImageSrc(null)
     } finally {
       setThumbnailUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  const handleCropCancel = () => {
+    if (cropImageSrc) URL.revokeObjectURL(cropImageSrc)
+    setCropImageSrc(null)
   }
 
   const handleDelete = async () => {
@@ -182,6 +223,16 @@ export default function WriterStoryPage() {
           </div>
 
           <div className="mt-10 flex flex-wrap items-center gap-3 pt-6 border-t border-stone-200">
+            {work.status === 'draft' && (
+              <button
+                type="button"
+                onClick={handlePublish}
+                disabled={saving}
+                className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+              >
+                {saving ? 'Publishing…' : 'Publish'}
+              </button>
+            )}
             <button
               type="button"
               onClick={startEdit}
@@ -240,7 +291,7 @@ export default function WriterStoryPage() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                onChange={handleThumbnailChange}
+                onChange={handleThumbnailFileSelect}
                 className="hidden"
                 id="edit-thumbnail"
               />
@@ -286,7 +337,7 @@ export default function WriterStoryPage() {
                 required
               />
             </div>
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-wrap gap-3 pt-2">
               <button
                 type="submit"
                 disabled={saving || !title.trim()}
@@ -294,6 +345,16 @@ export default function WriterStoryPage() {
               >
                 {saving ? 'Saving…' : 'Save changes'}
               </button>
+              {work.status === 'draft' && (
+                <button
+                  type="button"
+                  onClick={handleSaveAndPublish}
+                  disabled={saving || !title.trim()}
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                >
+                  {saving ? 'Publishing…' : 'Save & publish'}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={cancelEdit}
@@ -304,6 +365,14 @@ export default function WriterStoryPage() {
             </div>
           </form>
         </>
+      )}
+
+      {cropImageSrc && (
+        <ImageCropModal
+          imageSrc={cropImageSrc}
+          onComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
       )}
 
       {/* Delete confirmation */}

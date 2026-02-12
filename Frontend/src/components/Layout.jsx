@@ -17,8 +17,8 @@ export default function Layout() {
         </aside>
 
         {/* Main Content Area – white + wow orbs + carved edge lines */}
-        <main className="flex-1 xl:border-r xl:border-stone-200 bg-artistic-lines carving-edge bg-wow-orbs bg-white/95">
-          <div className="relative z-10 min-h-full">
+        <main className="flex-1 min-w-0 xl:border-r xl:border-stone-200 bg-artistic-lines carving-edge bg-wow-orbs bg-white/95 overflow-x-hidden">
+          <div className="relative z-10 min-h-full min-w-0">
             <Outlet />
           </div>
         </main>

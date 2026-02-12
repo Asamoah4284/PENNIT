@@ -29,7 +29,7 @@ export default function LoginPage() {
       authorId: role === 'writer' ? 'author-1' : undefined,
     }
     setUser(mockUser)
-    navigate(role === 'writer' ? '/dashboard' : '/reader')
+    navigate(role === 'writer' ? '/writers-dashboard' : '/reader')
   }
 
   return (

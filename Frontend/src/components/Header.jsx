@@ -100,7 +100,7 @@ export default function Header() {
 
                     <div className="py-1">
                       {user.role === 'writer' ? (
-                        <Link to="/writers-dashboard" className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Writers dashboard</Link>
+                        <Link to="/writers-dashboard" className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Overview</Link>
                       ) : (
                         <>
                           <Link to="/home" className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Home</Link>
@@ -161,8 +161,7 @@ export default function Header() {
           <nav className="space-y-2">
             {user?.role === 'writer' ? (
               <>
-                <SidebarLink to="/writers-dashboard" icon={<HomeIcon />} label="Writers dashboard" onClick={() => setIsSidebarOpen(false)} />
-                <SidebarLink to="/dashboard" icon={<StoriesIcon />} label="Dashboard" onClick={() => setIsSidebarOpen(false)} />
+                <SidebarLink to="/writers-dashboard" icon={<HomeIcon />} label="Overview" onClick={() => setIsSidebarOpen(false)} />
               </>
             ) : (
               <>

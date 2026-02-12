@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useLocation } from 'react-router-dom'
 import { getWork } from '../lib/api'
 
 export default function ReadingPage() {
   const { id } = useParams()
+  const location = useLocation()
   const [work, setWork] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  const fromHome = location.state?.from === 'home'
+  const backTo = fromHome ? '/home' : '/reader'
+  const backLabel = fromHome ? 'Back to home' : 'Back to discover'
 
   useEffect(() => {
     if (!id) {
@@ -30,7 +35,9 @@ export default function ReadingPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
         <p className="text-stone-500 mb-4">Work not found.</p>
-        <Link to="/reader" className="text-yellow-600 font-medium hover:underline">Back to discover</Link>
+        <button type="button" onClick={goBack} className="text-yellow-600 font-medium hover:underline">
+          ← Back
+        </button>
       </div>
     )
   }
@@ -44,9 +51,9 @@ export default function ReadingPage() {
 
   return (
     <article className="max-w-2xl mx-auto px-4 py-8">
-      <Link to="/reader" className="text-stone-500 text-sm hover:text-yellow-600 mb-6 inline-block">
-        ← Back to discover
-      </Link>
+      <button type="button" onClick={goBack} className="text-stone-500 text-sm hover:text-yellow-600 mb-6 inline-block">
+        ← Back
+      </button>
       <header className="mb-8">
         <p className="text-yellow-600 font-medium text-sm uppercase tracking-wide mb-2">{categoryLabel}</p>
         <h1 className="text-3xl font-bold text-stone-900 font-serif">{work.title}</h1>
@@ -59,6 +66,11 @@ export default function ReadingPage() {
           Posted {formatDateTime(work.createdAt)} · {work.readCount} reads
         </p>
       </header>
+      {work.thumbnailUrl && (
+        <div className="rounded-xl overflow-hidden border border-stone-200 mb-8 max-w-2xl aspect-video bg-stone-100">
+          <img src={work.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+        </div>
+      )}
       <div className="prose prose-stone max-w-none font-serif text-lg leading-relaxed text-stone-800 whitespace-pre-wrap">
         {work.body}
       </div>

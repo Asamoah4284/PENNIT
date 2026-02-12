@@ -57,8 +57,8 @@ export async function uploadImage(file) {
   return handleResponse(res)
 }
 
-/** Create a new work (story) - for writers */
-export async function createWork({ title, authorId, category, genre, excerpt, body, thumbnailUrl }) {
+/** Create a new work (story) - for writers. status: 'draft' | 'published' (default 'published') */
+export async function createWork({ title, authorId, category, genre, excerpt, body, thumbnailUrl, status = 'published' }) {
   const res = await fetch(`${API_BASE}/api/works`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -70,24 +70,20 @@ export async function createWork({ title, authorId, category, genre, excerpt, bo
       excerpt: excerpt || '',
       body: body || '',
       thumbnailUrl: thumbnailUrl || '',
+      status: status === 'draft' ? 'draft' : 'published',
     }),
   })
   return handleResponse(res)
 }
 
-/** Update a work - for writers */
-export async function updateWork(id, { title, category, genre, excerpt, body, thumbnailUrl }) {
+/** Update a work - for writers. status: 'draft' | 'published' to change visibility */
+export async function updateWork(id, { title, category, genre, excerpt, body, thumbnailUrl, status }) {
+  const payload = { title, category, genre, excerpt, body, thumbnailUrl }
+  if (status !== undefined) payload.status = status
   const res = await fetch(`${API_BASE}/api/works/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      title,
-      category,
-      genre,
-      excerpt,
-      body,
-      thumbnailUrl,
-    }),
+    body: JSON.stringify(payload),
   })
   return handleResponse(res)
 }

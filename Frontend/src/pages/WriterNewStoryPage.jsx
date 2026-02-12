@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getUser } from '../lib/auth'
 import { createWork, uploadImage } from '../lib/api'
+import ImageCropModal from '../components/ImageCropModal'
 
 const CATEGORIES = [
   { value: 'short_story', label: 'Short story' },
@@ -21,27 +22,45 @@ export default function WriterNewStoryPage() {
   const [body, setBody] = useState('')
   const [thumbnailUrl, setThumbnailUrl] = useState('')
   const [thumbnailUploading, setThumbnailUploading] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
 
-  const handleThumbnailChange = async (e) => {
+  const handleThumbnailFileSelect = (e) => {
     const file = e.target.files?.[0]
     if (!file || !file.type.startsWith('image/')) return
+    if (cropImageSrc) URL.revokeObjectURL(cropImageSrc)
+    setCropImageSrc(URL.createObjectURL(file))
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleCropComplete = async (blob) => {
+    if (!blob) return
     setThumbnailUploading(true)
     try {
+      const file = new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' })
       const { url } = await uploadImage(file)
       setThumbnailUrl(url)
+      if (cropImageSrc) URL.revokeObjectURL(cropImageSrc)
+      setCropImageSrc(null)
     } finally {
       setThumbnailUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleCropCancel = () => {
+    if (cropImageSrc) URL.revokeObjectURL(cropImageSrc)
+    setCropImageSrc(null)
+  }
+
+  const saveStory = async (status) => {
     if (!title.trim()) return
     if (!authorId) {
       setSaveError('Your writer profile is not set up. Please sign out and sign in again.')
+      return
+    }
+    if (status === 'published' && !body.trim()) {
+      setSaveError('Add some story content to publish.')
       return
     }
     setSaveError('')
@@ -55,13 +74,24 @@ export default function WriterNewStoryPage() {
         excerpt: excerpt.trim(),
         body: body.trim(),
         thumbnailUrl: thumbnailUrl.trim(),
+        status,
       })
       navigate(`/writers-dashboard/story/${work.id}`)
     } catch (err) {
-      setSaveError(err?.message || 'Failed to publish. Please try again.')
+      setSaveError(err?.message || (status === 'draft' ? 'Failed to save draft.' : 'Failed to publish. Please try again.'))
     } finally {
       setSaving(false)
     }
+  }
+
+  const handlePublish = (e) => {
+    e.preventDefault()
+    saveStory('published')
+  }
+
+  const handleSaveDraft = (e) => {
+    e.preventDefault()
+    saveStory('draft')
   }
 
   return (
@@ -70,7 +100,7 @@ export default function WriterNewStoryPage() {
         ← Back to dashboard
       </Link>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handlePublish} className="space-y-5">
         <h2 className="text-xl font-bold text-stone-900">New story</h2>
         {saveError && (
           <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{saveError}</p>
@@ -104,7 +134,7 @@ export default function WriterNewStoryPage() {
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-            onChange={handleThumbnailChange}
+            onChange={handleThumbnailFileSelect}
             className="hidden"
             id="new-thumbnail"
           />
@@ -131,6 +161,15 @@ export default function WriterNewStoryPage() {
             </label>
           )}
         </div>
+
+        {cropImageSrc && (
+          <ImageCropModal
+            imageSrc={cropImageSrc}
+            onComplete={handleCropComplete}
+            onCancel={handleCropCancel}
+          />
+        )}
+
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">Short summary</label>
           <textarea
@@ -149,16 +188,23 @@ export default function WriterNewStoryPage() {
             placeholder="Write your story here…"
             rows={12}
             className="w-full px-3 py-2.5 rounded-lg border border-stone-200 font-serif resize-y"
-            required
           />
         </div>
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-wrap gap-3 pt-2">
           <button
             type="submit"
             disabled={saving || !title.trim()}
             className="px-4 py-2 rounded-lg bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-50"
           >
             {saving ? 'Publishing…' : 'Publish'}
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={saving || !title.trim()}
+            className="px-4 py-2 rounded-lg border border-stone-300 text-stone-700 text-sm font-medium hover:bg-stone-50 disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : 'Save draft'}
           </button>
           <Link
             to="/writers-dashboard"

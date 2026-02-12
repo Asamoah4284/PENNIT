@@ -7,7 +7,6 @@ import LoginPage from './pages/LoginPage'
 import ReaderPage from './pages/ReaderPage'
 import ReadingPage from './pages/ReadingPage'
 import AuthorPage from './pages/AuthorPage'
-import DashboardPage from './pages/DashboardPage'
 import LibraryPage from './pages/LibraryPage'
 import ProfilePage from './pages/ProfilePage'
 import StoriesPage from './pages/StoriesPage'
@@ -15,6 +14,7 @@ import StatsPage from './pages/StatsPage'
 import WritersDashboardPage from './pages/WritersDashboardPage'
 import WriterStoryPage from './pages/WriterStoryPage'
 import WriterNewStoryPage from './pages/WriterNewStoryPage'
+import WriterStoryAnalyticsPage from './pages/WriterStoryAnalyticsPage'
 
 /** Readers only: writers are redirected to writers-dashboard */
 function RequireReader({ children }) {
@@ -64,12 +64,11 @@ function App() {
         <Route index element={<AuthorPage />} />
       </Route>
       {/* Writer-only routes */}
-      <Route path="/dashboard" element={<RequireWriter><Layout /></RequireWriter>}>
-        <Route index element={<DashboardPage />} />
-      </Route>
+      <Route path="/dashboard" element={<Navigate to="/writers-dashboard" replace />} />
       <Route path="/writers-dashboard" element={<RequireWriter><Layout /></RequireWriter>}>
         <Route index element={<WritersDashboardPage />} />
         <Route path="new" element={<WriterNewStoryPage />} />
+        <Route path="story/:id/analytics" element={<WriterStoryAnalyticsPage />} />
         <Route path="story/:id" element={<WriterStoryPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

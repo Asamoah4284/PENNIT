@@ -134,7 +134,7 @@ function StoryCard({ id, author, title, excerpt, date, reads, comments, category
       <div className="flex flex-col md:flex-row md:gap-6 gap-4">
         {/* Text Content – order 2 on mobile so it appears below image */}
         <div className="flex-1 min-w-0 order-2 md:order-1">
-          <Link to={`/reading/${id}`}>
+          <Link to={`/reading/${id}`} state={{ from: 'home' }}>
             <h2 className="text-lg sm:text-xl font-bold text-stone-900 mb-2 leading-snug group-hover:underline line-clamp-2">
               {title}
             </h2>
@@ -186,7 +186,7 @@ function StoryCard({ id, author, title, excerpt, date, reads, comments, category
         </div>
 
         {/* Thumbnail – full width on mobile (top), fixed size beside text on desktop */}
-        <Link to={`/reading/${id}`} className="order-1 md:order-2 flex-shrink-0 w-full md:w-44 md:h-28">
+        <Link to={`/reading/${id}`} state={{ from: 'home' }} className="order-1 md:order-2 flex-shrink-0 w-full md:w-44 md:h-28">
           <div className="w-full aspect-video md:aspect-auto md:w-44 md:h-28 rounded-lg overflow-hidden bg-stone-200">
             {thumbnailUrl ? (
               <img src={thumbnailUrl} alt={title} className="w-full h-full object-cover" />

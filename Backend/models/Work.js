@@ -10,6 +10,7 @@ const workSchema = new mongoose.Schema(
     body: { type: String, required: true },
     readCount: { type: Number, default: 0 },
     thumbnailUrl: { type: String, default: '' },
+    status: { type: String, enum: ['draft', 'published'], default: 'published' },
   },
   {
     timestamps: true,

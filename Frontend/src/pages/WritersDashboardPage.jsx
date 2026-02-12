@@ -28,6 +28,7 @@ export default function WritersDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [works, setWorks] = useState([])
   const [loading, setLoading] = useState(true)
+  const [tabLoading, setTabLoading] = useState(false)
 
   const authorId = user?.authorId
   const fetchMyWorks = useCallback(async () => {
@@ -45,7 +46,18 @@ export default function WritersDashboardPage() {
     fetchMyWorks()
   }, [fetchMyWorks])
 
+  useEffect(() => {
+    setTabLoading(true)
+    const t = setTimeout(() => setTabLoading(false), 400)
+    return () => clearTimeout(t)
+  }, [activeTab])
+
   const totalReads = works.reduce((sum, w) => sum + (w.readCount || 0), 0)
+  // Points and earnings: replace with API when available. Rate example: 1 point = 0.05 GHS.
+  const POINTS_PER_READ = 1
+  const GHS_PER_POINT = 0.05
+  const totalPointsEarned = totalReads * POINTS_PER_READ
+  const estimatedEarningsGHS = totalPointsEarned * GHS_PER_POINT
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
@@ -76,10 +88,27 @@ export default function WritersDashboardPage() {
           My posts
           {activeTab === 'posts' && <span className="absolute bottom-0 left-0 right-0 h-px bg-stone-900" />}
         </button>
+        <button
+          onClick={() => setActiveTab('earnings')}
+          className={`pb-4 text-sm font-medium transition-colors relative ${activeTab === 'earnings' ? 'text-stone-900' : 'text-stone-500 hover:text-stone-700'}`}
+        >
+          Earnings
+          {activeTab === 'earnings' && <span className="absolute bottom-0 left-0 right-0 h-px bg-stone-900" />}
+        </button>
       </div>
 
       {/* Overview */}
       {activeTab === 'overview' && (
+        <>
+          {tabLoading ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <svg className="animate-spin h-8 w-8 text-stone-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span className="text-stone-500 text-sm">Loading overview…</span>
+            </div>
+          ) : (
         <div className="space-y-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl bg-stone-50 border border-stone-100">
@@ -120,10 +149,56 @@ export default function WritersDashboardPage() {
             )}
           </div>
         </div>
+          )}
+        </>
+      )}
+
+      {/* Earnings */}
+      {activeTab === 'earnings' && (
+        <>
+          {tabLoading ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <svg className="animate-spin h-8 w-8 text-stone-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span className="text-stone-500 text-sm">Loading earnings…</span>
+            </div>
+          ) : (
+        <div className="space-y-8">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="p-6 rounded-2xl bg-stone-50 border border-stone-100">
+              <p className="text-stone-500 text-sm font-medium uppercase tracking-wider">Total points earned</p>
+              <p className="text-2xl font-bold text-stone-900 mt-1">{totalPointsEarned.toLocaleString()}</p>
+              <p className="text-stone-500 text-sm mt-2">From reads and engagement</p>
+            </div>
+            <div className="p-6 rounded-2xl bg-stone-50 border border-stone-100">
+              <p className="text-stone-500 text-sm font-medium uppercase tracking-wider">Estimated earnings</p>
+              <p className="text-2xl font-bold text-stone-900 mt-1">GH₵ {estimatedEarningsGHS.toFixed(2)}</p>
+              <p className="text-stone-500 text-sm mt-2">Ghana cedis (GHS)</p>
+            </div>
+          </div>
+          <div>
+            <h2 className="text-sm font-medium text-stone-500 mb-4">Recent activity</h2>
+            <p className="text-stone-500 text-sm py-6">No earnings activity yet.</p>
+          </div>
+        </div>
+          )}
+        </>
       )}
 
       {/* My posts – manage list, same card feel as Home */}
       {activeTab === 'posts' && (
+        <>
+          {tabLoading ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <svg className="animate-spin h-8 w-8 text-stone-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span className="text-stone-500 text-sm">Loading posts…</span>
+            </div>
+          ) : (
         <div className="space-y-8">
           {loading ? (
             <p className="text-stone-500 text-sm py-8">Loading…</p>
@@ -140,11 +215,18 @@ export default function WritersDashboardPage() {
           ) : (
             works.map((work) => (
               <article key={work.id} className="group">
-                <Link to={`/writers-dashboard/story/${work.id}`} className="flex gap-6">
+                <div className="flex gap-6">
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-bold text-stone-900 leading-snug group-hover:underline line-clamp-2 mb-2">
-                      {work.title}
-                    </h2>
+                    <Link to={`/writers-dashboard/story/${work.id}`} className="block">
+                      <h2 className="text-xl font-bold text-stone-900 leading-snug group-hover:underline line-clamp-2 mb-2 flex items-center gap-2 flex-wrap">
+                        <span>{work.title}</span>
+                        {work.status === 'draft' && (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                            Draft
+                          </span>
+                        )}
+                      </h2>
+                    </Link>
                     <p className="text-stone-600 text-base leading-relaxed line-clamp-2 mb-3">
                       {work.excerpt}
                     </p>
@@ -154,20 +236,28 @@ export default function WritersDashboardPage() {
                       <span>{formatDate(work.createdAt)}</span>
                       <span>{formatReads(work.readCount)} reads</span>
                     </div>
+                    <Link
+                      to={`/writers-dashboard/story/${work.id}/analytics`}
+                      className="inline-block mt-3 text-sm font-medium text-amber-700 hover:text-amber-800 hover:underline"
+                    >
+                      View analytics →
+                    </Link>
                   </div>
-                  <div className="flex-shrink-0 w-32 h-20 rounded-sm overflow-hidden bg-stone-200">
+                  <Link to={`/writers-dashboard/story/${work.id}`} className="flex-shrink-0 w-32 h-20 rounded-sm overflow-hidden bg-stone-200">
                     {work.thumbnailUrl ? (
                       <img src={work.thumbnailUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-stone-300 to-stone-400" />
                     )}
-                  </div>
-                </Link>
+                  </Link>
+                </div>
                 <div className="border-b border-stone-200 mt-8" />
               </article>
             ))
           )}
         </div>
+          )}
+        </>
       )}
     </div>
   )

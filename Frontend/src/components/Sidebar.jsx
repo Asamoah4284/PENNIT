@@ -11,8 +11,7 @@ export default function Sidebar() {
         return (
             <div className="sticky top-16 p-6 h-[calc(100vh-4rem)] overflow-y-auto">
                 <nav className="space-y-1">
-                    <SidebarLink to="/writers-dashboard" icon={<HomeIcon />} label="Writers dashboard" active={isActive('/writers-dashboard')} />
-                    <SidebarLink to="/dashboard" icon={<StoriesIcon />} label="Dashboard" active={isActive('/dashboard')} />
+                    <SidebarLink to="/writers-dashboard" icon={<HomeIcon />} label="Overview" active={isActive('/writers-dashboard')} />
                 </nav>
             </div>
         )

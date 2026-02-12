@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
 /** POST /api/works - Create a new work */
 router.post('/', async (req, res) => {
   try {
-    const { title, authorId, category, genre, excerpt, body, thumbnailUrl } = req.body
+    const { title, authorId, category, genre, excerpt, body, thumbnailUrl, status } = req.body
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' })
     }
@@ -37,8 +37,9 @@ router.post('/', async (req, res) => {
     if (!category || !['short_story', 'poem', 'novel'].includes(category)) {
       return res.status(400).json({ error: 'Valid category is required (short_story, poem, novel)' })
     }
-    if (!body || typeof body !== 'string') {
-      return res.status(400).json({ error: 'Story body is required' })
+    const isDraft = status === 'draft'
+    if (!isDraft && (!body || typeof body !== 'string')) {
+      return res.status(400).json({ error: 'Story body is required to publish' })
     }
     const work = await Work.create({
       title: title.trim(),
@@ -46,9 +47,10 @@ router.post('/', async (req, res) => {
       category,
       genre: (genre || 'General').trim(),
       excerpt: (excerpt || '').trim(),
-      body: body.trim(),
+      body: typeof body === 'string' ? body.trim() : '',
       readCount: 0,
       thumbnailUrl: (thumbnailUrl || '').trim(),
+      status: status === 'draft' ? 'draft' : 'published',
     })
     const populated = await Work.findById(work._id)
       .populate('authorId', 'penName avatarUrl')
@@ -96,13 +98,14 @@ router.put('/:id', async (req, res) => {
     if (!work) {
       return res.status(404).json({ error: 'Work not found' })
     }
-    const { title, category, genre, excerpt, body, thumbnailUrl } = req.body
+    const { title, category, genre, excerpt, body, thumbnailUrl, status } = req.body
     if (title !== undefined) work.title = title.trim()
     if (category !== undefined && ['short_story', 'poem', 'novel'].includes(category)) work.category = category
     if (genre !== undefined) work.genre = (genre || 'General').trim()
     if (excerpt !== undefined) work.excerpt = (excerpt || '').trim()
     if (body !== undefined) work.body = body.trim()
     if (thumbnailUrl !== undefined) work.thumbnailUrl = (thumbnailUrl || '').trim()
+    if (status !== undefined && ['draft', 'published'].includes(status)) work.status = status
     await work.save()
     const populated = await Work.findById(work._id)
       .populate('authorId', 'penName avatarUrl')
