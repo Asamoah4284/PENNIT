@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = process.env.PORT || 3000
 
-connectDB()
+await connectDB()
 
 app.use(cors())
 app.use(express.json())
@@ -35,4 +35,7 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
+}).on('error', (err) => {
+  console.error('Server failed to start:', err.message)
+  process.exit(1)
 })

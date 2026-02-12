@@ -3,6 +3,23 @@ import Work from '../models/Work.js'
 
 const router = Router()
 
+/** Format work for JSON: safe when authorId is populated object or raw ObjectId. */
+function formatWork(w) {
+  const authorId = w.authorId && typeof w.authorId === 'object' && w.authorId._id
+    ? w.authorId._id.toString()
+    : (w.authorId && typeof w.authorId.toString === 'function' ? w.authorId.toString() : (w.authorId ? String(w.authorId) : null))
+  const author = w.authorId && typeof w.authorId === 'object' && w.authorId.penName != null
+    ? { id: authorId, penName: w.authorId.penName, avatarUrl: w.authorId.avatarUrl ?? '' }
+    : null
+  return {
+    ...w,
+    id: w._id.toString(),
+    authorId,
+    author,
+    createdAt: w.createdAt?.toISOString?.() ?? w.createdAt,
+  }
+}
+
 /** GET /api/works - List all works */
 router.get('/', async (req, res) => {
   try {
@@ -10,13 +27,7 @@ router.get('/', async (req, res) => {
       .populate('authorId', 'penName avatarUrl')
       .sort({ createdAt: -1 })
       .lean()
-    const formatted = works.map((w) => ({
-      ...w,
-      id: w._id.toString(),
-      authorId: w.authorId?._id?.toString() ?? w.authorId?.toString(),
-      author: w.authorId ? { id: w.authorId._id.toString(), penName: w.authorId.penName, avatarUrl: w.authorId.avatarUrl } : null,
-      createdAt: w.createdAt?.toISOString(),
-    }))
+    const formatted = works.map(formatWork)
     res.json(formatted)
   } catch (err) {
     console.error('Error fetching works:', err)
@@ -78,13 +89,7 @@ router.get('/:id', async (req, res) => {
     if (!work) {
       return res.status(404).json({ error: 'Work not found' })
     }
-    res.json({
-      ...work,
-      id: work._id.toString(),
-      authorId: work.authorId?._id?.toString() ?? work.authorId?.toString(),
-      author: work.authorId ? { id: work.authorId._id.toString(), penName: work.authorId.penName, avatarUrl: work.authorId.avatarUrl } : null,
-      createdAt: work.createdAt?.toISOString(),
-    })
+    res.json(formatWork(work))
   } catch (err) {
     console.error('Error fetching work:', err)
     res.status(500).json({ error: 'Failed to fetch work' })
@@ -111,13 +116,7 @@ router.put('/:id', async (req, res) => {
       .populate('authorId', 'penName avatarUrl')
       .lean()
     const w = populated || work.toObject?.() || work
-    res.json({
-      ...w,
-      id: w._id.toString(),
-      authorId: w.authorId?._id?.toString() ?? w.authorId?.toString(),
-      author: w.authorId ? { id: w.authorId._id.toString(), penName: w.authorId.penName, avatarUrl: w.authorId.avatarUrl } : null,
-      createdAt: w.createdAt?.toISOString?.(),
-    })
+    res.json(formatWork(w))
   } catch (err) {
     console.error('Error updating work:', err)
     res.status(500).json({ error: 'Failed to update story' })
