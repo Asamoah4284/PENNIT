@@ -121,7 +121,7 @@ export default function Header() {
             ) : (
               <>
                 {/* Logged Out Links */}
-                <Link to="/login" className="text-base font-medium text-stone-600 hover:text-stone-900 hidden sm:block">
+                <Link to="/?signin=1" className="text-base font-medium text-stone-600 hover:text-stone-900 hidden sm:block">
                   Sign In
                 </Link>
                 <Link to="/?signup=1" className="bg-stone-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-stone-800 transition-colors shadow-sm sm:px-6 sm:py-2.5 sm:text-base">

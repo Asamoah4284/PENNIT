@@ -40,7 +40,7 @@ function App() {
       <Route path="/home" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<HomePage />} />
       </Route>
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login" element={<LoginRedirect />} />
       <Route path="/signup" element={<SignupRedirect />} />
       <Route path="/reader" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<ReaderPage />} />
@@ -82,6 +82,11 @@ function SignupRedirect() {
   const role = searchParams.get('role')
   const to = role === 'writer' ? '/?signup=writer' : '/?signup=1'
   return <Navigate to={to} replace />
+}
+
+/** Redirect /login to landing with signin popup (no dedicated login page) */
+function LoginRedirect() {
+  return <Navigate to="/?signin=1" replace />
 }
 
 export default App

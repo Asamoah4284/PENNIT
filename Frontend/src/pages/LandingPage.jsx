@@ -23,13 +23,18 @@ export default function LandingPage() {
     const [signinError, setSigninError] = useState('')
     const [signinLoading, setSigninLoading] = useState(false)
 
-    // Open signup popup when arriving with ?signup=1 or ?signup=writer
+    // Open auth popup when arriving with ?signup=1, ?signup=writer, or ?signin=1
     useEffect(() => {
         const signup = searchParams.get('signup')
+        const signin = searchParams.get('signin')
         if (signup === 'writer' || signup === '1') {
             setShowAuthModal(true)
             setAuthView('signup-email')
             setSignupRole(signup === 'writer' ? 'writer' : 'reader')
+            setSearchParams({}, { replace: true })
+        } else if (signin === '1') {
+            setShowAuthModal(true)
+            setAuthView('signin')
             setSearchParams({}, { replace: true })
         }
     }, [searchParams, setSearchParams])
@@ -123,7 +128,7 @@ export default function LandingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#FDFCFB]">
+        <div className="h-screen overflow-hidden lg:min-h-screen lg:overflow-visible bg-[#FDFCFB]">
             {/* Header */}
             <header className="absolute top-0 left-0 right-0 z-50 px-6 lg:px-12 py-6">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -274,7 +279,11 @@ export default function LandingPage() {
 
                     {/* Floating Card - Minimalist Redesign */}
                     <div className="absolute bottom-12 left-12 group">
-                        <div className="bg-white/90 backdrop-blur-2xl border border-white/50 rounded-[2.5rem] p-4 pl-4 pr-12 shadow-[0_30px_100px_-20px_rgba(0,0,0,0.3)] flex items-center gap-6 transform hover:-translate-y-2 transition-all duration-500 cursor-default">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/home')}
+                            className="bg-white/90 backdrop-blur-2xl border border-white/50 rounded-[2.5rem] p-4 pl-4 pr-12 shadow-[0_30px_100px_-20px_rgba(0,0,0,0.3)] flex items-center gap-6 transform hover:-translate-y-2 transition-all duration-500 cursor-pointer"
+                        >
                             {/* Icon Container */}
                             <div className="relative">
                                 <div className="w-14 h-14 bg-stone-900 rounded-[1.5rem] flex items-center justify-center transition-transform duration-500 group-hover:rotate-[10deg]">
@@ -298,7 +307,7 @@ export default function LandingPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                                 </svg>
                             </div>
-                        </div>
+                        </button>
                     </div>
                 </div>
             </section>
