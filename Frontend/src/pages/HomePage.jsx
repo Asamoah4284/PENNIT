@@ -1,12 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { mockWorks, mockAuthors } from '../data/mock'
+import { getWorks } from '../lib/api'
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('forYou')
+  const [works, setWorks] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  // Helper to get author by ID
-  const getAuthor = (authorId) => mockAuthors.find(a => a.id === authorId)
+  useEffect(() => {
+    getWorks()
+      .then(setWorks)
+      .catch(() => setWorks([]))
+      .finally(() => setLoading(false))
+  }, [])
 
   // Format date to readable string
   const formatDate = (dateString) => {
@@ -62,8 +68,11 @@ export default function HomePage() {
 
       {/* Stories Feed */}
       <div className="space-y-8">
-        {mockWorks.map((work) => {
-          const author = getAuthor(work.authorId)
+        {loading ? (
+          <p className="text-stone-500 text-center py-12">Loading…</p>
+        ) : (
+          works.map((work) => {
+          const author = work.author
           return (
             <StoryCard
               key={work.id}
@@ -79,7 +88,8 @@ export default function HomePage() {
               thumbnailUrl={work.thumbnailUrl}
             />
           )
-        })}
+        })
+        )}
       </div>
     </div>
   )

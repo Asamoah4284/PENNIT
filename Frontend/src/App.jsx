@@ -1,9 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
+import { getUser } from './lib/auth'
 import Layout from './components/Layout'
 import LandingPage from './pages/LandingPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
-import SignupPage from './pages/SignupPage'
 import ReaderPage from './pages/ReaderPage'
 import ReadingPage from './pages/ReadingPage'
 import AuthorPage from './pages/AuthorPage'
@@ -13,6 +13,22 @@ import ProfilePage from './pages/ProfilePage'
 import StoriesPage from './pages/StoriesPage'
 import StatsPage from './pages/StatsPage'
 import WritersDashboardPage from './pages/WritersDashboardPage'
+import WriterStoryPage from './pages/WriterStoryPage'
+import WriterNewStoryPage from './pages/WriterNewStoryPage'
+
+/** Readers only: writers are redirected to writers-dashboard */
+function RequireReader({ children }) {
+  const user = getUser()
+  if (user?.role === 'writer') return <Navigate to="/writers-dashboard" replace />
+  return children
+}
+
+/** Writers only: readers are redirected to reader home */
+function RequireWriter({ children }) {
+  const user = getUser()
+  if (user && user.role !== 'writer') return <Navigate to="/reader" replace />
+  return children
+}
 
 function App() {
   return (
@@ -20,42 +36,53 @@ function App() {
       {/* Landing page - no layout */}
       <Route path="/" element={<LandingPage />} />
 
-      {/* Main app with layout */}
-      <Route path="/home" element={<Layout />}>
+      {/* Reader-only routes */}
+      <Route path="/home" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<HomePage />} />
       </Route>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/reader" element={<Layout />}>
+      <Route path="/signup" element={<SignupRedirect />} />
+      <Route path="/reader" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<ReaderPage />} />
       </Route>
-      <Route path="/library" element={<Layout />}>
+      <Route path="/library" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<LibraryPage />} />
       </Route>
-      <Route path="/profile" element={<Layout />}>
+      <Route path="/profile" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<ProfilePage />} />
       </Route>
-      <Route path="/stories" element={<Layout />}>
+      <Route path="/stories" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<StoriesPage />} />
       </Route>
-      <Route path="/stats" element={<Layout />}>
+      <Route path="/stats" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<StatsPage />} />
       </Route>
-      <Route path="/reading/:id" element={<Layout />}>
+      <Route path="/reading/:id" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<ReadingPage />} />
       </Route>
-      <Route path="/author/:id" element={<Layout />}>
+      <Route path="/author/:id" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<AuthorPage />} />
       </Route>
-      <Route path="/dashboard" element={<Layout />}>
+      {/* Writer-only routes */}
+      <Route path="/dashboard" element={<RequireWriter><Layout /></RequireWriter>}>
         <Route index element={<DashboardPage />} />
       </Route>
-      <Route path="/writers-dashboard" element={<Layout />}>
+      <Route path="/writers-dashboard" element={<RequireWriter><Layout /></RequireWriter>}>
         <Route index element={<WritersDashboardPage />} />
+        <Route path="new" element={<WriterNewStoryPage />} />
+        <Route path="story/:id" element={<WriterStoryPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
+}
+
+/** Redirect /signup and /signup?role=writer to landing with signup popup */
+function SignupRedirect() {
+  const [searchParams] = useSearchParams()
+  const role = searchParams.get('role')
+  const to = role === 'writer' ? '/?signup=writer' : '/?signup=1'
+  return <Navigate to={to} replace />
 }
 
 export default App

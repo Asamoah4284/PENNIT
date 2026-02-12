@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { uploadImage } from '../lib/api'
 
 const CATEGORIES = [
   { value: 'short_story', label: 'Short story' },
@@ -7,29 +8,61 @@ const CATEGORIES = [
 ]
 
 export default function NewStoryModal({ isOpen, onClose, onSave }) {
+  const fileInputRef = useRef(null)
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('short_story')
+  const [thumbnailUrl, setThumbnailUrl] = useState('')
+  const [thumbnailUploading, setThumbnailUploading] = useState(false)
   const [excerpt, setExcerpt] = useState('')
   const [body, setBody] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const reset = () => {
     setTitle('')
     setCategory('short_story')
+    setThumbnailUrl('')
     setExcerpt('')
     setBody('')
   }
 
   const handleClose = () => {
+    setError('')
     reset()
+    if (fileInputRef.current) fileInputRef.current.value = ''
     onClose()
+  }
+
+  const handleThumbnailChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file (JPEG, PNG, GIF, or WebP).')
+      return
+    }
+    setError('')
+    setThumbnailUploading(true)
+    try {
+      const { url } = await uploadImage(file)
+      setThumbnailUrl(url)
+    } catch (err) {
+      setError(err?.message || 'Failed to upload image.')
+    } finally {
+      setThumbnailUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const clearThumbnail = () => {
+    setThumbnailUrl('')
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleSaveDraft = async () => {
     if (!title.trim()) return
     setSaving(true)
     try {
-      await onSave?.({ title: title.trim(), category, excerpt: excerpt.trim(), body: body.trim(), status: 'draft' })
+      await onSave?.({ title: title.trim(), category, thumbnailUrl: thumbnailUrl.trim(), excerpt: excerpt.trim(), body: body.trim(), status: 'draft' })
       handleClose()
     } finally {
       setSaving(false)
@@ -38,10 +71,13 @@ export default function NewStoryModal({ isOpen, onClose, onSave }) {
 
   const handlePublish = async () => {
     if (!title.trim()) return
+    setError('')
     setSaving(true)
     try {
-      await onSave?.({ title: title.trim(), category, excerpt: excerpt.trim(), body: body.trim(), status: 'published' })
+      await onSave?.({ title: title.trim(), category, thumbnailUrl: thumbnailUrl.trim(), excerpt: excerpt.trim(), body: body.trim(), status: 'published' })
       handleClose()
+    } catch (err) {
+      setError(err?.message || 'Failed to publish. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -85,6 +121,9 @@ export default function NewStoryModal({ isOpen, onClose, onSave }) {
 
         {/* Body – scrollable, min-h-0 so flex shrink works */}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+          )}
           <div>
             <label htmlFor="story-title" className="block text-sm font-medium text-stone-700 mb-1.5">
               Title
@@ -113,6 +152,60 @@ export default function NewStoryModal({ isOpen, onClose, onSave }) {
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1.5">
+              Thumbnail <span className="text-stone-400 font-normal">(optional)</span>
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              onChange={handleThumbnailChange}
+              className="hidden"
+              id="story-thumbnail"
+            />
+            {thumbnailUrl ? (
+              <div className="mt-2 flex items-start gap-3">
+                <div className="rounded-lg overflow-hidden border border-stone-200 bg-stone-50 w-full max-w-[200px] aspect-video flex-shrink-0">
+                  <img
+                    src={thumbnailUrl}
+                    alt="Thumbnail preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.style.display = 'none' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={thumbnailUploading}
+                    className="text-sm font-medium text-stone-600 hover:text-stone-900 disabled:opacity-50"
+                  >
+                    {thumbnailUploading ? 'Uploading…' : 'Change image'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearThumbnail}
+                    disabled={thumbnailUploading}
+                    className="text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label
+                htmlFor="story-thumbnail"
+                className={`mt-2 flex flex-col items-center justify-center gap-1 w-full max-w-[240px] min-h-[100px] py-4 px-4 rounded-xl border-2 border-dashed border-stone-200 bg-stone-50/80 cursor-pointer hover:bg-stone-100 hover:border-stone-300 transition-colors ${thumbnailUploading ? 'opacity-60 pointer-events-none' : ''}`}
+              >
+                <span className="text-stone-700 text-sm font-medium text-center">
+                  {thumbnailUploading ? 'Uploading…' : 'Select image from device'}
+                </span>
+                <span className="text-stone-400 text-xs text-center">JPG, PNG, GIF or WebP · Max 5 MB</span>
+              </label>
+            )}
           </div>
 
           <div>

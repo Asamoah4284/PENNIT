@@ -4,23 +4,32 @@ import { getUser } from '../lib/auth'
 export default function Sidebar() {
     const user = getUser()
     const location = useLocation()
-
+    const isWriter = user?.role === 'writer'
     const isActive = (path) => location.pathname === path
+
+    if (isWriter) {
+        return (
+            <div className="sticky top-16 p-6 h-[calc(100vh-4rem)] overflow-y-auto">
+                <nav className="space-y-1">
+                    <SidebarLink to="/writers-dashboard" icon={<HomeIcon />} label="Writers dashboard" active={isActive('/writers-dashboard')} />
+                    <SidebarLink to="/dashboard" icon={<StoriesIcon />} label="Dashboard" active={isActive('/dashboard')} />
+                </nav>
+            </div>
+        )
+    }
 
     return (
         <div className="sticky top-16 p-6 h-[calc(100vh-4rem)] overflow-y-auto">
-            {/* Navigation List */}
             <nav className="space-y-1">
-                <SidebarLink to="/" icon={<HomeIcon />} label="Home" active={isActive('/')} />
+                <SidebarLink to="/home" icon={<HomeIcon />} label="Home" active={isActive('/home')} />
+                <SidebarLink to="/reader" icon={<StoriesIcon />} label="Discover" active={isActive('/reader')} />
                 <SidebarLink to="/library" icon={<LibraryIcon />} label="Library" active={isActive('/library')} />
                 <SidebarLink to="/profile" icon={<UserIcon />} label="Profile" active={isActive('/profile')} />
-                <SidebarLink to="/stories" icon={<StoriesIcon />} label="Stories" active={isActive('/stories')} />
                 <SidebarLink to="/stats" icon={<StatsIcon />} label="Stats" active={isActive('/stats')} />
             </nav>
 
             <div className="my-6 border-t border-stone-100"></div>
 
-            {/* Following Section */}
             <div>
                 <h3 className="text-sm font-medium text-stone-500 mb-4 flex items-center gap-2">
                     <FollowingIcon />

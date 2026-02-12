@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getWork } from '../lib/api'
-import { mockAuthors } from '../data/mock'
-
-function getAuthorName(authorId) {
-  const author = mockAuthors.find((a) => a.id === authorId)
-  return author ? author.penName : 'Unknown'
-}
 
 export default function ReadingPage() {
   const { id } = useParams()
@@ -18,10 +12,10 @@ export default function ReadingPage() {
       setLoading(false)
       return
     }
-    getWork(id).then((data) => {
-      setWork(data)
-      setLoading(false)
-    })
+    getWork(id)
+      .then(setWork)
+      .catch(() => setWork(null))
+      .finally(() => setLoading(false))
   }, [id])
 
   if (loading) {
@@ -42,6 +36,11 @@ export default function ReadingPage() {
   }
 
   const categoryLabel = { poem: 'Poem', short_story: 'Short Story', novel: 'Novel' }[work.category] || work.category
+  const formatDateTime = (dateString) => {
+    if (!dateString) return ''
+    const d = new Date(dateString)
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  }
 
   return (
     <article className="max-w-2xl mx-auto px-4 py-8">
@@ -53,8 +52,11 @@ export default function ReadingPage() {
         <h1 className="text-3xl font-bold text-stone-900 font-serif">{work.title}</h1>
         <p className="text-stone-600 mt-2">
           <Link to={`/author/${work.authorId}`} className="text-yellow-600 hover:underline font-medium">
-            {getAuthorName(work.authorId)}
+            {work.author?.penName || 'Unknown'}
           </Link>
+        </p>
+        <p className="text-stone-500 text-sm mt-2">
+          Posted {formatDateTime(work.createdAt)} · {work.readCount} reads
         </p>
       </header>
       <div className="prose prose-stone max-w-none font-serif text-lg leading-relaxed text-stone-800 whitespace-pre-wrap">
@@ -63,7 +65,7 @@ export default function ReadingPage() {
       <footer className="mt-12 pt-6 border-t border-stone-200">
         <p className="text-stone-500 text-sm">{work.readCount} reads</p>
         <Link to={`/author/${work.authorId}`} className="text-yellow-600 font-medium hover:underline mt-2 inline-block">
-          More from {getAuthorName(work.authorId)}
+          More from {work.author?.penName || 'Unknown'}
         </Link>
       </footer>
     </article>

@@ -14,10 +14,10 @@ export default function AuthorPage() {
       setLoading(false)
       return
     }
-    getAuthor(id).then((data) => {
-      setAuthor(data)
-      setLoading(false)
-    })
+    getAuthor(id)
+      .then(setAuthor)
+      .catch(() => setAuthor(null))
+      .finally(() => setLoading(false))
   }, [id])
 
   if (loading) {
