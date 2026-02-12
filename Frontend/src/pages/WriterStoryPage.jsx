@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { getWork, updateWork, deleteWork, uploadImage } from '../lib/api'
+import { getWork, updateWork, deleteWork, uploadImage, getAssetUrl } from '../lib/api'
 import ImageCropModal from '../components/ImageCropModal'
 
 const CATEGORIES = [
@@ -298,7 +298,7 @@ export default function WriterStoryPage() {
               {thumbnailUrl ? (
                 <div className="flex items-start gap-3 mt-2">
                   <div className="rounded-lg overflow-hidden border border-stone-200 w-40 aspect-video flex-shrink-0">
-                    <img src={thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                    <img src={getAssetUrl(thumbnailUrl)} alt="" className="w-full h-full object-cover" />
                   </div>
                   <div className="flex flex-col gap-2">
                     <label htmlFor="edit-thumbnail" className="text-sm font-medium text-stone-600 hover:text-stone-900 cursor-pointer">

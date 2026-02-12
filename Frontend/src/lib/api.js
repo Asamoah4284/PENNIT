@@ -1,4 +1,13 @@
-const API_BASE = import.meta.env.VITE_API_URL || ''
+/** Backend base URL from .env (no trailing slash). Used by all API and asset URLs. */
+export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+
+/** Resolve asset URL (e.g. thumbnail, avatar). Relative paths like /uploads/... get API_BASE prepended. */
+export function getAssetUrl(url) {
+  if (!url || typeof url !== 'string') return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  const base = API_BASE || ''
+  return base ? `${base}${url.startsWith('/') ? url : `/${url}`}` : url
+}
 
 async function handleResponse(res) {
   if (!res.ok) {
@@ -50,7 +59,7 @@ export async function login({ email, password }) {
 export async function uploadImage(file) {
   const formData = new FormData()
   formData.append('file', file)
-  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/upload`, {
+  const res = await fetch(`${API_BASE}/api/upload`, {
     method: 'POST',
     body: formData,
   })

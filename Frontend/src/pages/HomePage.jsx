@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { getWorks } from '../lib/api'
+import { getWorks, getAssetUrl } from '../lib/api'
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('forYou')
@@ -189,7 +189,7 @@ function StoryCard({ id, author, title, excerpt, date, reads, comments, category
         <Link to={`/reading/${id}`} state={{ from: 'home' }} className="order-1 md:order-2 flex-shrink-0 w-full md:w-44 md:h-28">
           <div className="w-full aspect-video md:aspect-auto md:w-44 md:h-28 rounded-lg overflow-hidden bg-stone-200">
             {thumbnailUrl ? (
-              <img src={thumbnailUrl} alt={title} className="w-full h-full object-cover" />
+              <img src={getAssetUrl(thumbnailUrl)} alt={title} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400" />
             )}

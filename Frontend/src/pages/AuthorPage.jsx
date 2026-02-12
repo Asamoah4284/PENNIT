@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getAuthor } from '../lib/api'
+import { getAuthor, getAssetUrl } from '../lib/api'
 
 const CATEGORY_LABELS = { poem: 'Poem', short_story: 'Short Story', novel: 'Novel' }
 
@@ -108,7 +108,7 @@ export default function AuthorPage() {
                   <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-stone-100">
                     {work.thumbnailUrl ? (
                       <img
-                        src={work.thumbnailUrl}
+                        src={getAssetUrl(work.thumbnailUrl)}
                         alt=""
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       />

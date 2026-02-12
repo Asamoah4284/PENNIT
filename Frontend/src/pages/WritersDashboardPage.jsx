@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { getUser } from '../lib/auth'
-import { getWorks } from '../lib/api'
+import { getWorks, getAssetUrl } from '../lib/api'
 
 const formatDate = (dateString) => {
   const date = new Date(dateString)
@@ -245,7 +245,7 @@ export default function WritersDashboardPage() {
                   </div>
                   <Link to={`/writers-dashboard/story/${work.id}`} className="flex-shrink-0 w-32 h-20 rounded-sm overflow-hidden bg-stone-200">
                     {work.thumbnailUrl ? (
-                      <img src={work.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                      <img src={getAssetUrl(work.thumbnailUrl)} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-stone-300 to-stone-400" />
                     )}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams, useLocation, useNavigate } from 'react-router-dom'
-import { getWork } from '../lib/api'
+import { getWork, getAssetUrl } from '../lib/api'
 
 export default function ReadingPage() {
   const { id } = useParams()
@@ -70,7 +70,7 @@ export default function ReadingPage() {
       </header>
       {work.thumbnailUrl && (
         <div className="rounded-xl overflow-hidden border border-stone-200 mb-8 max-w-2xl aspect-video bg-stone-100">
-          <img src={work.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+          <img src={getAssetUrl(work.thumbnailUrl)} alt="" className="w-full h-full object-cover" />
         </div>
       )}
       <div className="prose prose-stone max-w-none font-serif text-lg leading-relaxed text-stone-800 whitespace-pre-wrap">

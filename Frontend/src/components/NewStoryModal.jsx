@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { uploadImage } from '../lib/api'
+import { uploadImage, getAssetUrl } from '../lib/api'
 
 const CATEGORIES = [
   { value: 'short_story', label: 'Short story' },
@@ -170,7 +170,7 @@ export default function NewStoryModal({ isOpen, onClose, onSave }) {
               <div className="mt-2 flex items-start gap-3">
                 <div className="rounded-lg overflow-hidden border border-stone-200 bg-stone-50 w-full max-w-[200px] aspect-video flex-shrink-0">
                   <img
-                    src={thumbnailUrl}
+                    src={getAssetUrl(thumbnailUrl)}
                     alt="Thumbnail preview"
                     className="w-full h-full object-cover"
                     onError={(e) => { e.target.style.display = 'none' }}
