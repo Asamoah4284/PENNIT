@@ -23,6 +23,15 @@ export default function LandingPage() {
     const [signinError, setSigninError] = useState('')
     const [signinLoading, setSigninLoading] = useState(false)
 
+    // Lock body scroll while on landing (mobile hero should not scroll)
+    useEffect(() => {
+        const previous = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+        return () => {
+            document.body.style.overflow = previous || ''
+        }
+    }, [])
+
     // Open auth popup when arriving with ?signup=1, ?signup=writer, or ?signin=1
     useEffect(() => {
         const signup = searchParams.get('signup')
@@ -166,8 +175,8 @@ export default function LandingPage() {
                 </div>
             </header>
 
-            {/* Hero Section: on mobile show image first; on lg show text left + image right */}
-            <section className="relative min-h-screen flex flex-col lg:flex-row">
+            {/* Hero Section: on mobile fill viewport without scroll; on lg allow full height */}
+            <section className="relative h-full lg:min-h-screen flex flex-col lg:flex-row">
                 {/* Left Side - Text (hidden on mobile, shown on lg) */}
                 <div className="hidden lg:flex w-full lg:w-1/2 bg-[#FDFCFB] flex-col justify-center px-6 lg:px-20 py-32 lg:py-20 relative overflow-hidden bg-writing-carvings corner-flourish">
                     {/* Paper texture */}
@@ -265,7 +274,7 @@ export default function LandingPage() {
                 </div>
 
                 {/* Right Side - Image (shown first on mobile, right on desktop) */}
-                <div className="flex-1 min-h-screen lg:min-h-0 lg:w-1/2 relative overflow-hidden order-first lg:order-none">
+                <div className="flex-1 h-full lg:min-h-0 lg:w-1/2 relative overflow-hidden order-first lg:order-none">
                     <img
                         src="/images/hero-illustration.png"
                         alt="African creativity"
@@ -276,6 +285,21 @@ export default function LandingPage() {
                     />
                     {/* Overlay Pattern */}
                     <div className="absolute inset-0 bg-gradient-to-r from-stone-900/20 to-transparent"></div>
+
+                    {/* Mobile headline overlay */}
+                    <div className="absolute inset-x-6 top-20 lg:hidden">
+                        <div className="inline-block max-w-xs px-4 py-3 rounded-3xl bg-stone-950/60 backdrop-blur-md shadow-lg">
+                            <h1 className="text-2xl font-black leading-snug tracking-tight text-white">
+                                Where African
+                                <br />
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400">
+                                    Creativity
+                                </span>
+                                <br />
+                                Thrives.
+                            </h1>
+                        </div>
+                    </div>
 
                     {/* Floating Card - Minimalist Redesign (slightly higher on mobile) */}
                     <div className="absolute bottom-24 lg:bottom-12 left-6 lg:left-12 group">
