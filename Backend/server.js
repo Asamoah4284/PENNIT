@@ -13,33 +13,44 @@ import { clientIpMiddleware } from './middleware/clientIp.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
-const PORT = process.env.PORT || 3000
+const PORT = Number(process.env.PORT) || 3000
 
-await connectDB()
+async function start() {
+  try {
+    console.log('[PENNIT] Connecting to database…')
+    await connectDB()
+    console.log('[PENNIT] MongoDB connected.')
+  } catch (err) {
+    console.error('[PENNIT] Startup failed: MongoDB connection error.', err?.message || err)
+    process.exit(1)
+  }
 
-app.use(cors())
-app.use(express.json())
-app.use(clientIpMiddleware)
+  app.use(cors())
+  app.use(express.json())
+  app.use(clientIpMiddleware)
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
-app.use('/api/works', worksRouter)
-app.use('/api/authors', authorsRouter)
-app.use('/api/auth', authRouter)
-app.use('/api/upload', uploadRouter)
-app.use('/api/posts', postsRouter)
+  app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+  app.use('/api/works', worksRouter)
+  app.use('/api/authors', authorsRouter)
+  app.use('/api/auth', authRouter)
+  app.use('/api/upload', uploadRouter)
+  app.use('/api/posts', postsRouter)
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'PENNIT API is running' })
-})
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', message: 'PENNIT API is running' })
+  })
 
-app.use((err, req, res, next) => {
-  console.error(err.stack)
-  res.status(500).json({ error: 'Something went wrong' })
-})
+  app.use((err, req, res, next) => {
+    console.error('[PENNIT] Error:', err.stack)
+    res.status(500).json({ error: 'Something went wrong' })
+  })
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
-}).on('error', (err) => {
-  console.error('Server failed to start:', err.message)
-  process.exit(1)
-})
+  app.listen(PORT, () => {
+    console.log(`[PENNIT] Server listening on port ${PORT}`)
+  }).on('error', (err) => {
+    console.error('[PENNIT] Server failed to start:', err.message)
+    process.exit(1)
+  })
+}
+
+start()
