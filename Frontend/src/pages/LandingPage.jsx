@@ -277,8 +277,8 @@ export default function LandingPage() {
                     {/* Overlay Pattern */}
                     <div className="absolute inset-0 bg-gradient-to-r from-stone-900/20 to-transparent"></div>
 
-                    {/* Floating Card - Minimalist Redesign */}
-                    <div className="absolute bottom-12 left-12 group">
+                    {/* Floating Card - Minimalist Redesign (slightly higher on mobile) */}
+                    <div className="absolute bottom-24 lg:bottom-12 left-6 lg:left-12 group">
                         <button
                             type="button"
                             onClick={() => navigate('/home')}

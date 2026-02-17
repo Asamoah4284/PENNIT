@@ -27,9 +27,7 @@ export default function ReadingPage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-12 text-center text-stone-500">
-        Loading…
-      </div>
+      <ReadingSkeleton />
     )
   }
 
@@ -84,6 +82,26 @@ export default function ReadingPage() {
           More from {work.author?.penName || 'Unknown'}
         </Link>
       </footer>
+    </article>
+  )
+}
+
+function ReadingSkeleton() {
+  return (
+    <article className="max-w-2xl mx-auto px-4 py-8 animate-pulse">
+      <div className="h-4 w-20 bg-stone-200 rounded-full mb-4" />
+      <div className="h-8 w-3/4 bg-stone-200 rounded mb-3" />
+      <div className="h-4 w-32 bg-stone-200 rounded mb-2" />
+      <div className="h-3 w-40 bg-stone-200 rounded mb-8" />
+
+      <div className="rounded-xl overflow-hidden border border-stone-200 mb-8 max-w-2xl aspect-video bg-stone-200" />
+
+      <div className="space-y-3">
+        <div className="h-4 bg-stone-200 rounded" />
+        <div className="h-4 bg-stone-200 rounded w-11/12" />
+        <div className="h-4 bg-stone-200 rounded w-10/12" />
+        <div className="h-4 bg-stone-200 rounded w-9/12" />
+      </div>
     </article>
   )
 }

@@ -200,35 +200,33 @@ export default function HomePage() {
 
       {/* Stories Feed */}
       <div className="space-y-8">
-        {loading ? (
-          <p className="text-stone-500 text-center py-12">Loading…</p>
-        ) : (
-          works.map((work) => {
-            const author = work.author
-            return (
-              <StoryCard
-                key={work.id}
-                id={work.id}
-                author={author}
-                title={work.title}
-                excerpt={work.excerpt}
-                date={formatDate(work.createdAt)}
-                reads={formatReads(work.readCount)}
-                comments={work.commentCount ?? 0}
-                category={work.category}
-                publication={work.genre}
-                thumbnailUrl={work.thumbnailUrl}
-                clapCount={work.clapCount}
-                saved={work._saved}
-                clapped={work._clapped}
-                onToggleClap={() => handleToggleClap(work.id)}
-                onToggleSave={() => handleToggleSave(work.id)}
-                onSubmitComment={(content) => handleSubmitComment(work.id, content)}
-                disabled={!!pendingAction}
-              />
-            )
-          })
-        )}
+        {loading
+          ? Array.from({ length: 3 }).map((_, index) => <HomeSkeletonCard key={index} />)
+          : works.map((work) => {
+              const author = work.author
+              return (
+                <StoryCard
+                  key={work.id}
+                  id={work.id}
+                  author={author}
+                  title={work.title}
+                  excerpt={work.excerpt}
+                  date={formatDate(work.createdAt)}
+                  reads={formatReads(work.readCount)}
+                  comments={work.commentCount ?? 0}
+                  category={work.category}
+                  publication={work.genre}
+                  thumbnailUrl={work.thumbnailUrl}
+                  clapCount={work.clapCount}
+                  saved={work._saved}
+                  clapped={work._clapped}
+                  onToggleClap={() => handleToggleClap(work.id)}
+                  onToggleSave={() => handleToggleSave(work.id)}
+                  onSubmitComment={(content) => handleSubmitComment(work.id, content)}
+                  disabled={!!pendingAction}
+                />
+              )
+            })}
       </div>
     </div>
   )
@@ -444,6 +442,36 @@ function StoryCard({
 
       {/* Divider */}
       <div className="border-b border-stone-200 mt-8"></div>
+    </article>
+  )
+}
+
+function HomeSkeletonCard() {
+  return (
+    <article className="animate-pulse">
+      {/* Author + meta skeleton */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-6 h-6 rounded-full bg-stone-200" />
+        <div className="flex-1 h-3 bg-stone-200 rounded-full max-w-xs" />
+      </div>
+
+      <div className="flex flex-col md:flex-row md:gap-6 gap-4">
+        <div className="flex-1 min-w-0 space-y-3 order-2 md:order-1">
+          <div className="h-5 bg-stone-200 rounded-full max-w-sm" />
+          <div className="h-4 bg-stone-200 rounded-full max-w-md" />
+          <div className="flex gap-4 mt-2">
+            <div className="h-3 w-16 bg-stone-200 rounded-full" />
+            <div className="h-3 w-12 bg-stone-200 rounded-full" />
+            <div className="h-3 w-12 bg-stone-200 rounded-full" />
+          </div>
+        </div>
+
+        <div className="order-1 md:order-2 flex-shrink-0 w-full md:w-44 md:h-28">
+          <div className="w-full aspect-video md:aspect-auto md:w-44 md:h-28 rounded-lg bg-stone-200" />
+        </div>
+      </div>
+
+      <div className="border-b border-stone-200 mt-8" />
     </article>
   )
 }
