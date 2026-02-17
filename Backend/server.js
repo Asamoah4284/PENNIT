@@ -36,6 +36,10 @@ async function start() {
   app.use('/api/upload', uploadRouter)
   app.use('/api/posts', postsRouter)
 
+  app.get('/', (req, res) => {
+    res.json({ name: 'PENNIT API', health: '/api/health', docs: 'Use /api/works, /api/authors, /api/auth, etc.' })
+  })
+
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'PENNIT API is running' })
   })
