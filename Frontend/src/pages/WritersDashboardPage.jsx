@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { getUser } from '../lib/auth'
-import { getWorks, getAssetUrl } from '../lib/api'
+import { getWorks, getAssetUrl, getEstimatedEarnings, getPayoutMethod } from '../lib/api'
+import { useConfig } from '../contexts/ConfigContext'
 
 const formatDate = (dateString) => {
   const date = new Date(dateString)
@@ -25,10 +26,13 @@ const categoryLabel = (cat) => {
 
 export default function WritersDashboardPage() {
   const user = getUser()
+  const { monetizationEnabled } = useConfig()
   const [activeTab, setActiveTab] = useState('overview')
   const [works, setWorks] = useState([])
   const [loading, setLoading] = useState(true)
   const [tabLoading, setTabLoading] = useState(false)
+  const [earnings, setEarnings] = useState(null)
+  const [payoutMethod, setPayoutMethodState] = useState(null)
 
   const authorId = user?.authorId
   const fetchMyWorks = useCallback(async () => {
@@ -47,17 +51,29 @@ export default function WritersDashboardPage() {
   }, [fetchMyWorks])
 
   useEffect(() => {
+    if (monetizationEnabled && user?.id) {
+      getEstimatedEarnings(user.id)
+        .then(setEarnings)
+        .catch(() => setEarnings(null))
+      getPayoutMethod(user.id)
+        .then((d) => setPayoutMethodState(d.payoutMethod))
+        .catch(() => setPayoutMethodState(null))
+    } else {
+      setEarnings(null)
+      setPayoutMethodState(null)
+    }
+  }, [monetizationEnabled, user?.id])
+
+  useEffect(() => {
     setTabLoading(true)
     const t = setTimeout(() => setTabLoading(false), 400)
     return () => clearTimeout(t)
   }, [activeTab])
 
   const totalReads = works.reduce((sum, w) => sum + (w.readCount || 0), 0)
-  // Points and earnings: replace with API when available. Rate example: 1 point = 0.05 GHS.
-  const POINTS_PER_READ = 1
-  const GHS_PER_POINT = 0.05
-  const totalPointsEarned = totalReads * POINTS_PER_READ
-  const estimatedEarningsGHS = totalPointsEarned * GHS_PER_POINT
+  const estimatedThisMonth = earnings?.monetizationEnabled && earnings?.estimatedThisMonth
+  const totalPointsEarned = estimatedThisMonth?.points ?? 0
+  const estimatedEarningsGHS = estimatedThisMonth?.amountGhc ?? 0
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
@@ -125,7 +141,11 @@ export default function WritersDashboardPage() {
             </div>
             <div className="p-4 rounded-xl bg-stone-50 border border-stone-100">
               <p className="text-stone-500 text-xs font-medium uppercase tracking-wider">Earnings</p>
-              <p className="text-2xl font-bold text-stone-900 mt-1">—</p>
+              <p className="text-2xl font-bold text-stone-900 mt-1">
+                {monetizationEnabled
+                  ? (estimatedThisMonth ? `GH₵ ${Number(estimatedEarningsGHS).toFixed(2)}` : '—')
+                  : 'Pre-launch'}
+              </p>
             </div>
           </div>
           <div>
@@ -164,23 +184,50 @@ export default function WritersDashboardPage() {
               </svg>
               <span className="text-stone-500 text-sm">Loading earnings…</span>
             </div>
+          ) : !monetizationEnabled ? (
+            <div className="space-y-8">
+              <div className="p-6 rounded-2xl bg-amber-50 border border-amber-100">
+                <p className="text-amber-800 font-medium">Earnings will be available after launch</p>
+                <p className="text-stone-600 text-sm mt-2">Monetization is built in but not yet active. Once enabled, you’ll see estimated earnings here based on reader engagement.</p>
+              </div>
+            </div>
           ) : (
         <div className="space-y-8">
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="p-6 rounded-2xl bg-stone-50 border border-stone-100">
-              <p className="text-stone-500 text-sm font-medium uppercase tracking-wider">Total points earned</p>
+              <p className="text-stone-500 text-sm font-medium uppercase tracking-wider">Total points this month</p>
               <p className="text-2xl font-bold text-stone-900 mt-1">{totalPointsEarned.toLocaleString()}</p>
-              <p className="text-stone-500 text-sm mt-2">From reads and engagement</p>
+              <p className="text-stone-500 text-sm mt-2">From reads (poem=1, short story=3, novel=5 per read)</p>
             </div>
             <div className="p-6 rounded-2xl bg-stone-50 border border-stone-100">
-              <p className="text-stone-500 text-sm font-medium uppercase tracking-wider">Estimated earnings</p>
-              <p className="text-2xl font-bold text-stone-900 mt-1">GH₵ {estimatedEarningsGHS.toFixed(2)}</p>
-              <p className="text-stone-500 text-sm mt-2">Ghana cedis (GHS)</p>
+              <p className="text-stone-500 text-sm font-medium uppercase tracking-wider">Estimated earnings this month</p>
+              <p className="text-2xl font-bold text-stone-900 mt-1">GH₵ {Number(estimatedEarningsGHS).toFixed(2)}</p>
+              <p className="text-stone-500 text-sm mt-2">Ghana cedis (GHS). Final amount calculated at month end.</p>
             </div>
           </div>
           <div>
-            <h2 className="text-sm font-medium text-stone-500 mb-4">Recent activity</h2>
-            <p className="text-stone-500 text-sm py-6">No earnings activity yet.</p>
+            <h2 className="text-sm font-medium text-stone-500 mb-4">Earnings history</h2>
+            {earnings?.history?.length ? (
+              <ul className="space-y-2">
+                {earnings.history.map((h) => (
+                  <li key={h.id} className="flex items-center justify-between gap-4 py-2 border-b border-stone-100 last:border-0">
+                    <span className="text-stone-700">{h.month}</span>
+                    <span className="font-medium text-stone-900">GH₵ {Number(h.amountGhc).toFixed(2)}</span>
+                    <span className="text-stone-500 text-sm shrink-0">{h.status === 'paid' ? 'Paid' : 'Calculated'}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-stone-500 text-sm py-6">No past earnings yet.</p>
+            )}
+          </div>
+          <div>
+            <h2 className="text-sm font-medium text-stone-500 mb-4">Payout method</h2>
+            <p className="text-stone-600 text-sm">
+              {payoutMethod
+                ? `Bank or Mobile Money: ${payoutMethod.type === 'bank' ? `Bank account ${payoutMethod.accountNumber || ''}` : `${payoutMethod.mobileMoneyProvider || 'Mobile Money'} ${payoutMethod.mobileMoneyNumber || ''}`}`
+                : 'Set your bank or mobile money details to receive monthly payouts.'}
+            </p>
           </div>
         </div>
           )}

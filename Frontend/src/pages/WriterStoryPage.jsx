@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { getWork, updateWork, deleteWork, uploadImage, getAssetUrl } from '../lib/api'
 import ImageCropModal from '../components/ImageCropModal'
+import RichTextEditor from '../components/RichTextEditor'
+import DOMPurify from 'dompurify'
 
 const CATEGORIES = [
   { value: 'short_story', label: 'Short story' },
@@ -106,7 +108,7 @@ export default function WriterStoryPage() {
         category,
         genre: work.genre || 'General',
         excerpt: excerpt.trim(),
-        body: body.trim(),
+        body,
         thumbnailUrl: thumbnailUrl.trim(),
       }
       if (publish) payload.status = 'published'
@@ -218,8 +220,14 @@ export default function WriterStoryPage() {
             <p className="text-stone-600 text-lg leading-relaxed mb-6">{work.excerpt}</p>
           )}
 
-          <div className="prose prose-stone max-w-none font-serif text-lg leading-relaxed text-stone-800 whitespace-pre-wrap">
-            {work.body}
+          <div className="prose prose-stone max-w-none font-serif text-lg leading-relaxed text-stone-800">
+            {work.body ? (
+              <div
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(work.body) }}
+              />
+            ) : (
+              <p className="text-stone-500 italic">No content available for this story.</p>
+            )}
           </div>
 
           <div className="mt-10 flex flex-wrap items-center gap-3 pt-6 border-t border-stone-200">
@@ -329,13 +337,7 @@ export default function WriterStoryPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1.5">Story</label>
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                rows={12}
-                className="w-full px-3 py-2.5 rounded-lg border border-stone-200 font-serif resize-y"
-                required
-              />
+              <RichTextEditor value={body} onChange={setBody} />
             </div>
             <div className="flex flex-wrap gap-3 pt-2">
               <button

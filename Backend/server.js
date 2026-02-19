@@ -4,11 +4,14 @@ import { fileURLToPath } from 'url'
 import express from 'express'
 import cors from 'cors'
 import { connectDB } from './config/db.js'
+import configRouter from './routes/config.js'
 import worksRouter from './routes/works.js'
 import authorsRouter from './routes/authors.js'
 import authRouter from './routes/auth.js'
 import uploadRouter from './routes/upload.js'
 import postsRouter from './routes/posts.js'
+import subscriptionsRouter from './routes/subscriptions.js'
+import earningsRouter from './routes/earnings.js'
 import { clientIpMiddleware } from './middleware/clientIp.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -25,11 +28,14 @@ app.use(express.json())
 app.use(clientIpMiddleware)
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+app.use('/api/config', configRouter)
 app.use('/api/works', worksRouter)
 app.use('/api/authors', authorsRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/upload', uploadRouter)
 app.use('/api/posts', postsRouter)
+app.use('/api/subscriptions', subscriptionsRouter)
+app.use('/api/earnings', earningsRouter)
 
 app.get('/', (req, res) => {
   res.json({ name: 'PENNIT API', health: '/api/health', docs: 'Use /api/works, /api/authors, /api/auth, etc.' })

@@ -25,7 +25,7 @@ export async function createWorkComment(req, res) {
       return res.status(400).json({ error: 'Invalid work ID' })
     }
 
-    const { content } = req.body ?? {}
+    const { content, parentId: rawParentId } = req.body ?? {}
     if (!content || !String(content).trim()) {
       return res.status(400).json({ error: 'Comment content is required' })
     }
@@ -35,11 +35,21 @@ export async function createWorkComment(req, res) {
       return res.status(404).json({ error: 'Work not found' })
     }
 
+    let parentId = null
+    if (rawParentId && mongoose.Types.ObjectId.isValid(rawParentId)) {
+      const parent = await WorkComment.findOne({ _id: rawParentId, workId: work._id }).select('_id').lean()
+      if (!parent) {
+        return res.status(400).json({ error: 'Parent comment not found' })
+      }
+      parentId = parent._id
+    }
+
     const comment = await WorkComment.create({
       workId: work._id,
       userId,
       authorId: work.authorId,
       content: String(content).trim(),
+      parentId,
     })
 
     await Work.updateOne({ _id: work._id }, { $inc: { commentCount: 1 } }).exec()
@@ -76,6 +86,7 @@ export async function listWorkComments(req, res) {
       userName: c.userId?.penName || c.userId?.name || null,
       authorId: c.authorId?.toString?.() ?? c.authorId,
       content: c.content,
+      parentId: c.parentId?.toString?.() ?? null,
       createdAt: c.createdAt?.toISOString?.() ?? c.createdAt,
     }))
 
@@ -107,12 +118,17 @@ export async function toggleWorkClap(req, res) {
     const existing = await WorkClap.findOne({ workId, userId })
     if (existing) {
       await existing.deleteOne()
-      await Work.updateOne({ _id: workId }, { $inc: { clapCount: -1 } }).exec()
+      // Decrement but never go below 0
+      await Work.updateOne(
+        { _id: workId },
+        [{ $set: { clapCount: { $max: [0, { $subtract: ['$clapCount', 1] }] } } }]
+      ).exec()
       const updated = await Work.findById(workId).select('clapCount')
+      const count = Math.max(0, updated?.clapCount ?? 0)
       return res.json({
         workId,
         clapped: false,
-        clapCount: updated?.clapCount ?? 0,
+        clapCount: count,
       })
     }
 
@@ -135,7 +151,7 @@ export async function toggleWorkClap(req, res) {
       return res.json({
         workId,
         clapped: !!existing,
-        clapCount: work?.clapCount ?? 0,
+        clapCount: Math.max(0, work?.clapCount ?? 0),
       })
     }
     console.error('Error toggling work clap:', err)
@@ -166,7 +182,7 @@ export async function getWorkClapStatus(req, res) {
     res.json({
       workId,
       clapped,
-      clapCount: work.clapCount ?? 0,
+      clapCount: Math.max(0, work.clapCount ?? 0),
     })
   } catch (err) {
     console.error('Error fetching work clap status:', err)

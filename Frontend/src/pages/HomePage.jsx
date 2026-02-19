@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { getWorks, getAssetUrl, toggleWorkClap, toggleSaveWork, createWorkComment, getWorkComments } from '../lib/api'
+import { getWorks, getAssetUrl, toggleSaveWork, createWorkComment } from '../lib/api'
 import { getUser } from '../lib/auth'
 
 export default function HomePage() {
@@ -58,12 +58,12 @@ export default function HomePage() {
     try {
       const result = await toggleWorkClap(workId, user.id)
       // Sync with server response silently
-      setWorks((prev) =>
+        setWorks((prev) =>
         prev.map((w) =>
           w.id === workId
             ? {
                 ...w,
-                clapCount: result.clapCount,
+                clapCount: Math.max(0, result.clapCount ?? 0),
                 _clapped: result.clapped,
               }
             : w
@@ -219,10 +219,7 @@ export default function HomePage() {
                   thumbnailUrl={work.thumbnailUrl}
                   clapCount={work.clapCount}
                   saved={work._saved}
-                  clapped={work._clapped}
-                  onToggleClap={() => handleToggleClap(work.id)}
                   onToggleSave={() => handleToggleSave(work.id)}
-                  onSubmitComment={(content) => handleSubmitComment(work.id, content)}
                   disabled={!!pendingAction}
                 />
               )
@@ -245,49 +242,20 @@ function StoryCard({
   thumbnailUrl,
   clapCount,
   saved,
-  clapped,
-  onToggleClap,
   onToggleSave,
-  onSubmitComment,
   disabled,
 }) {
-  const [commentsOpen, setCommentsOpen] = useState(false)
-  const [commentText, setCommentText] = useState('')
-  const [commentsLoading, setCommentsLoading] = useState(false)
-  const [commentItems, setCommentItems] = useState([])
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
 
-  const handleCommentClick = async () => {
-    const nextOpen = !commentsOpen
-    setCommentsOpen(nextOpen)
-    if (nextOpen && commentItems.length === 0) {
-      setCommentsLoading(true)
-      try {
-        const data = await getWorkComments(id, { limit: 20 })
-        setCommentItems(data)
-      } catch {
-        setCommentItems([])
-      } finally {
-        setCommentsLoading(false)
-      }
+  useEffect(() => {
+    if (!menuOpen) return
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
     }
-  }
-
-  const handleSubmitComment = async (e) => {
-    e.preventDefault()
-    if (!onSubmitComment || !commentText.trim()) return
-    try {
-      const created = await onSubmitComment(commentText.trim())
-      if (created) {
-        setCommentItems((prev) => [created, ...prev])
-      }
-      setCommentText('')
-      if (!commentsOpen) {
-        setCommentsOpen(true)
-      }
-    } catch {
-      // swallow error for now; could show toast
-    }
-  }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [menuOpen])
 
   return (
     <article className="group">
@@ -344,33 +312,23 @@ function StoryCard({
               </svg>
               <span>{reads}</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 text-stone-500">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 flex-shrink-0">
                 <path fillRule="evenodd" d="M10 3c-4.31 0-8 3.033-8 7 0 2.024.978 3.825 2.499 5.085a3.478 3.478 0 0 1-.522 1.756.75.75 0 0 0 .584 1.143 5.976 5.976 0 0 0 3.936-1.108c.487.082.99.124 1.503.124 4.31 0 8-3.033 8-7s-3.69-7-8-7Z" clipRule="evenodd" />
               </svg>
-              <button
-                type="button"
-                onClick={handleCommentClick}
-                className="flex items-center gap-1 text-stone-500 hover:text-stone-700"
-              >
-                <span>{comments}</span>
-              </button>
+              <span>{comments}</span>
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons – clap is display-only; save and menu are clickable */}
             <div className="flex-1 min-w-0" />
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={onToggleClap}
-                className={`flex items-center justify-center gap-1 px-3 h-8 rounded-full text-xs font-medium border border-stone-300 bg-white ${
-                  clapped ? 'text-stone-900' : 'text-stone-600'
-                }`}
+              <div
+                className="flex items-center justify-center gap-1 px-3 h-8 rounded-full text-xs font-medium border border-stone-300 bg-white text-stone-600"
+                aria-label={`${Math.max(0, clapCount ?? 0)} claps`}
               >
                 <span className="text-base leading-none">👏</span>
-                <span>{clapCount ?? 0}</span>
-              </button>
+                <span>{Math.max(0, clapCount ?? 0)}</span>
+              </div>
               <button
                 type="button"
                 disabled={disabled}
@@ -383,49 +341,73 @@ function StoryCard({
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill={saved ? 'currentColor' : 'none'} viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 10.5v6m3-3h-6" />
                 </svg>
               </button>
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setMenuOpen((prev) => !prev)
+                  }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full border border-stone-300 text-stone-400 bg-white hover:border-stone-400 hover:text-stone-600 transition-colors"
+                  aria-label="More options"
+                  aria-expanded={menuOpen}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-4 h-4">
+                    <path fillRule="evenodd" d="M6 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm6 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm6 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-full mt-1 pt-1.5 z-50">
+                    {/* Upward-pointing triangle anchor */}
+                    <div className="absolute right-4 top-0 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white drop-shadow-[0_-1px_1px_rgba(0,0,0,0.06)]" />
+                    <div className="min-w-[240px] rounded-lg bg-white border border-stone-200 shadow-lg py-1">
+                      <button
+                        type="button"
+                        className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-t-lg"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        Follow author
+                      </button>
+                      <button
+                        type="button"
+                        className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-none"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        Follow publication
+                      </button>
+                      <div className="my-1 border-t border-stone-200" />
+                      <button
+                        type="button"
+                        className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-none"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        Mute author
+                      </button>
+                      <button
+                        type="button"
+                        className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-none"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        Mute publication
+                      </button>
+                      <button
+                        type="button"
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-stone-50 rounded-b-lg"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        Report story…
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {commentsOpen && (
-            <>
-              <div className="mt-3 space-y-2">
-                {commentsLoading ? (
-                  <p className="text-xs text-stone-400">Loading comments…</p>
-                ) : commentItems.length === 0 ? (
-                  <p className="text-xs text-stone-400">No comments yet. Be the first to comment.</p>
-                ) : (
-                  commentItems.map((c) => (
-                    <div key={c.id} className="text-xs text-stone-700 flex gap-2">
-                      <span className="font-medium text-stone-800">
-                        {c.userName || 'Reader'}
-                      </span>
-                      <span className="text-stone-400">·</span>
-                      <span className="flex-1">{c.content}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-              <form onSubmit={handleSubmitComment} className="mt-3 flex items-center gap-2">
-                <input
-                  type="text"
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Add a comment..."
-                  className="flex-1 px-3 py-1.5 text-sm border border-stone-300 rounded-full focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
-                  disabled={disabled}
-                />
-                <button
-                  type="submit"
-                  disabled={disabled || !commentText.trim()}
-                  className="px-3 py-1.5 text-xs font-medium rounded-full bg-amber-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Post
-                </button>
-              </form>
-            </>
-          )}
         </div>
 
         {/* Thumbnail – full width on mobile (top), fixed size beside text on desktop */}

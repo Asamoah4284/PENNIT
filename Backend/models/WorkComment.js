@@ -6,6 +6,7 @@ const workCommentSchema = new mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Author', default: null, index: true },
     content: { type: String, required: true, trim: true },
+    parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkComment', default: null, index: true },
   },
   {
     timestamps: true,
@@ -16,6 +17,7 @@ const workCommentSchema = new mongoose.Schema(
         ret.workId = ret.workId?.toString()
         ret.userId = ret.userId?.toString()
         ret.authorId = ret.authorId?.toString() ?? null
+        ret.parentId = ret.parentId?.toString?.() ?? null
         delete ret._id
         delete ret.__v
         return ret

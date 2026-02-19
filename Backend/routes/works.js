@@ -8,6 +8,7 @@ import {
   toggleSaveWork,
   listSavedWorks,
 } from '../controllers/workSocialController.js'
+import { trackWorkView, trackWorkRead } from '../controllers/workReadController.js'
 
 const router = Router()
 
@@ -172,6 +173,12 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete story' })
   }
 })
+
+/** POST /api/works/:id/view - Track work view (for read dedup). */
+router.post('/:id/view', trackWorkView)
+
+/** POST /api/works/:id/read - Track work read (progress/time); increments readCount when threshold met, 24h dedup. */
+router.post('/:id/read', trackWorkRead)
 
 /** POST /api/works/:id/comments - Create a comment on a work */
 router.post('/:id/comments', createWorkComment)

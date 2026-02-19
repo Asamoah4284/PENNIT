@@ -15,6 +15,7 @@ import WritersDashboardPage from './pages/WritersDashboardPage'
 import WriterStoryPage from './pages/WriterStoryPage'
 import WriterNewStoryPage from './pages/WriterNewStoryPage'
 import WriterStoryAnalyticsPage from './pages/WriterStoryAnalyticsPage'
+import PricingPage from './pages/PricingPage'
 
 /** Readers only: writers are redirected to writers-dashboard */
 function RequireReader({ children }) {
@@ -62,6 +63,9 @@ function App() {
       </Route>
       <Route path="/author/:id" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<AuthorPage />} />
+      </Route>
+      <Route path="/pricing" element={<RequireReader><Layout /></RequireReader>}>
+        <Route index element={<PricingPage />} />
       </Route>
       {/* Writer-only routes */}
       <Route path="/dashboard" element={<Navigate to="/writers-dashboard" replace />} />

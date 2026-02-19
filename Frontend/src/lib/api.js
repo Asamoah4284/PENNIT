@@ -3,6 +3,12 @@ const raw = (import.meta.env.VITE_API_URL || '').trim()
 const url = import.meta.env.PROD && !raw ? 'https://api.pennit.io' : raw
 export const API_BASE = url.replace(/\/$/, '')
 
+/** Fetch public config (e.g. monetizationEnabled). Used to gate subscription/earnings UI. */
+export async function getConfig() {
+  const res = await fetch(`${API_BASE}/api/config`)
+  return handleResponse(res)
+}
+
 /** Resolve asset URL (e.g. thumbnail, avatar). Relative paths like /uploads/... get API_BASE prepended. */
 export function getAssetUrl(url) {
   if (!url || typeof url !== 'string') return ''
@@ -31,9 +37,11 @@ export async function getWork(id) {
   return handleResponse(res)
 }
 
-/** Fetch an author by ID with their works */
-export async function getAuthor(id) {
-  const res = await fetch(`${API_BASE}/api/authors/${id}`)
+/** Fetch an author by ID with their works. Optional userId sends x-user-id for _following in response. */
+export async function getAuthor(id, userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/authors/${id}`, { headers })
   return handleResponse(res)
 }
 
@@ -112,11 +120,11 @@ export async function deleteWork(id) {
 
 /** --- Social APIs: comments, claps, saves, follows, read tracking --- */
 
-export async function createWorkComment(workId, { content, userId }) {
+export async function createWorkComment(workId, { content, userId, parentId }) {
   const res = await fetch(`${API_BASE}/api/works/${workId}/comments`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content, userId }),
+    body: JSON.stringify({ content, userId, parentId }),
   })
   return handleResponse(res)
 }
@@ -186,6 +194,92 @@ export async function trackPostRead(postId, { progressPercentage, timeSpent }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ progressPercentage, timeSpent }),
+  })
+  return handleResponse(res)
+}
+
+/** Track work view (call when opening a work). */
+export async function trackWorkView(workId, userId) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/works/${workId}/view`, {
+    method: 'POST',
+    headers,
+  })
+  return handleResponse(res)
+}
+
+/** Track work read (progress/time). Call on leave or interval; counts as read when progress >= 60% and time >= 30s, 24h dedup. */
+export async function trackWorkRead(workId, { progressPercentage, timeSpent }, userId) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/works/${workId}/read`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ progressPercentage, timeSpent }),
+  })
+  return handleResponse(res)
+}
+
+/** --- Subscriptions (monetization) --- */
+
+export async function getSubscriptionPlans() {
+  const res = await fetch(`${API_BASE}/api/subscriptions/plans`)
+  return handleResponse(res)
+}
+
+export async function getMySubscription(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/subscriptions/me`, { headers })
+  return handleResponse(res)
+}
+
+export async function createSubscriptionCheckout(userId, { planId, returnUrl, cancelUrl }) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/subscriptions`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ planId, returnUrl, cancelUrl }),
+  })
+  return handleResponse(res)
+}
+
+export async function cancelSubscription(userId) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/subscriptions/cancel`, {
+    method: 'POST',
+    headers,
+  })
+  return handleResponse(res)
+}
+
+/** GET /api/earnings/estimated - Writer estimated earnings (this month + history). */
+export async function getEstimatedEarnings(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/earnings/estimated`, { headers })
+  return handleResponse(res)
+}
+
+/** GET /api/earnings/payout-method - Writer payout method (bank or mobile money). */
+export async function getPayoutMethod(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/earnings/payout-method`, { headers })
+  return handleResponse(res)
+}
+
+/** PUT /api/earnings/payout-method - Set payout method. */
+export async function setPayoutMethod(userId, { type, bankCode, accountNumber, accountName, mobileMoneyNumber, mobileMoneyProvider }) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/earnings/payout-method`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ type, bankCode, accountNumber, accountName, mobileMoneyNumber, mobileMoneyProvider }),
   })
   return handleResponse(res)
 }

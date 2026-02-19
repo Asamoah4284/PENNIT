@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getUser } from '../lib/auth'
 import { createWork, uploadImage, getAssetUrl } from '../lib/api'
 import ImageCropModal from '../components/ImageCropModal'
+import RichTextEditor from '../components/RichTextEditor'
 
 const CATEGORIES = [
   { value: 'short_story', label: 'Short story' },
@@ -74,9 +75,12 @@ export default function WriterNewStoryPage() {
       setSaveError('Your writer profile is not set up. Please sign out and sign in again.')
       return
     }
-    if (status === 'published' && !body.trim()) {
-      setSaveError('Add some story content to publish.')
-      return
+    if (status === 'published') {
+      const plainBody = body.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ')
+      if (!plainBody.trim()) {
+        setSaveError('Add some story content to publish.')
+        return
+      }
     }
     setSaveError('')
     setSaving(true)
@@ -93,7 +97,7 @@ export default function WriterNewStoryPage() {
         category,
         genre: 'General',
         excerpt: excerpt.trim(),
-        body: body.trim(),
+        body,
         thumbnailUrl: thumbnailUrl.trim(),
         topics,
         status,
@@ -240,13 +244,7 @@ export default function WriterNewStoryPage() {
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">Story</label>
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Write your story here…"
-            rows={12}
-            className="w-full px-3 py-2.5 rounded-lg border border-stone-200 font-serif resize-y"
-          />
+          <RichTextEditor value={body} onChange={setBody} />
         </div>
         <div className="flex flex-wrap gap-3 pt-2">
           <button

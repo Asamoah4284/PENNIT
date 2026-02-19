@@ -131,3 +131,15 @@
     z-index: 1;
   }
 }
+
+/* Rich text story editor sizing */
+.rich-text-editor .ql-container {
+  min-height: 260px;
+}
+
+.rich-text-editor .ql-editor {
+  min-height: 220px;
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
