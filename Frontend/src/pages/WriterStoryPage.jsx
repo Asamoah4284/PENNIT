@@ -100,6 +100,10 @@ export default function WriterStoryPage() {
 
   const saveWork = async (publish = false) => {
     if (!work?.id || !title.trim()) return
+    if (!excerpt.trim()) {
+      setSaveError('Short summary is required.')
+      return
+    }
     setSaveError('')
     setSaving(true)
     try {
@@ -327,12 +331,16 @@ export default function WriterStoryPage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1.5">Short summary</label>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">
+                Short summary <span className="text-red-500">*</span>
+              </label>
               <textarea
                 value={excerpt}
                 onChange={(e) => setExcerpt(e.target.value)}
                 rows={2}
                 className="w-full px-3 py-2.5 rounded-lg border border-stone-200 resize-none"
+                placeholder="A brief teaser or summary in one or two sentences."
+                required
               />
             </div>
             <div>
@@ -342,7 +350,7 @@ export default function WriterStoryPage() {
             <div className="flex flex-wrap gap-3 pt-2">
               <button
                 type="submit"
-                disabled={saving || !title.trim()}
+                disabled={saving || !title.trim() || !excerpt.trim()}
                 className="px-4 py-2 rounded-lg bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-50"
               >
                 {saving ? 'Saving…' : 'Save changes'}
@@ -351,7 +359,7 @@ export default function WriterStoryPage() {
                 <button
                   type="button"
                   onClick={handleSaveAndPublish}
-                  disabled={saving || !title.trim()}
+                  disabled={saving || !title.trim() || !excerpt.trim()}
                   className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50"
                 >
                   {saving ? 'Publishing…' : 'Save & publish'}

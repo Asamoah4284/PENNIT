@@ -60,6 +60,11 @@ export default function NewStoryModal({ isOpen, onClose, onSave }) {
 
   const handleSaveDraft = async () => {
     if (!title.trim()) return
+    if (!excerpt.trim()) {
+      setError('Short summary is required.')
+      return
+    }
+    setError('')
     setSaving(true)
     try {
       await onSave?.({ title: title.trim(), category, thumbnailUrl: thumbnailUrl.trim(), excerpt: excerpt.trim(), body: body.trim(), status: 'draft' })
@@ -71,6 +76,10 @@ export default function NewStoryModal({ isOpen, onClose, onSave }) {
 
   const handlePublish = async () => {
     if (!title.trim()) return
+    if (!excerpt.trim()) {
+      setError('Short summary is required.')
+      return
+    }
     setError('')
     setSaving(true)
     try {
@@ -210,7 +219,8 @@ export default function NewStoryModal({ isOpen, onClose, onSave }) {
 
           <div>
             <label htmlFor="story-excerpt" className="block text-sm font-medium text-stone-700 mb-1.5">
-              Short summary <span className="text-stone-400 font-normal">(for previews)</span>
+              Short summary <span className="text-red-500">*</span>{' '}
+              <span className="text-stone-400 font-normal">(for previews)</span>
             </label>
             <textarea
               id="story-excerpt"
@@ -219,6 +229,7 @@ export default function NewStoryModal({ isOpen, onClose, onSave }) {
               placeholder="A brief teaser or summary in one or two sentences."
               rows={2}
               className="w-full px-3 py-2.5 rounded-lg border border-stone-200 text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400/50 focus:border-stone-400 resize-none"
+              required
             />
           </div>
 
@@ -249,7 +260,7 @@ export default function NewStoryModal({ isOpen, onClose, onSave }) {
           <button
             type="button"
             onClick={handleSaveDraft}
-            disabled={saving || !title.trim()}
+            disabled={saving || !title.trim() || !excerpt.trim()}
             className="order-2 px-4 py-3 sm:py-2 rounded-lg text-sm font-medium text-stone-700 bg-stone-200 hover:bg-stone-300 disabled:opacity-50 disabled:pointer-events-none transition-colors touch-manipulation"
           >
             Save draft
@@ -257,7 +268,7 @@ export default function NewStoryModal({ isOpen, onClose, onSave }) {
           <button
             type="button"
             onClick={handlePublish}
-            disabled={saving || !title.trim()}
+            disabled={saving || !title.trim() || !excerpt.trim()}
             className="order-1 sm:order-3 px-4 py-3 sm:py-2 rounded-lg text-sm font-medium text-white bg-stone-900 hover:bg-stone-800 disabled:opacity-50 disabled:pointer-events-none transition-colors touch-manipulation"
           >
             {saving ? 'Publishing…' : 'Publish'}

@@ -71,6 +71,10 @@ export default function WriterNewStoryPage() {
 
   const saveStory = async (status) => {
     if (!title.trim()) return
+    if (!excerpt.trim()) {
+      setSaveError('Short summary is required.')
+      return
+    }
     if (!authorId) {
       setSaveError('Your writer profile is not set up. Please sign out and sign in again.')
       return
@@ -197,13 +201,16 @@ export default function WriterNewStoryPage() {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1.5">Short summary</label>
+          <label className="block text-sm font-medium text-stone-700 mb-1.5">
+            Short summary <span className="text-red-500">*</span>
+          </label>
           <textarea
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
             placeholder="A brief teaser or summary in one or two sentences."
             rows={2}
             className="w-full px-3 py-2.5 rounded-lg border border-stone-200 resize-none"
+            required
           />
         </div>
         <div>
@@ -249,7 +256,7 @@ export default function WriterNewStoryPage() {
         <div className="flex flex-wrap gap-3 pt-2">
           <button
             type="submit"
-            disabled={saving || !title.trim()}
+            disabled={saving || !title.trim() || !excerpt.trim()}
             className="px-4 py-2 rounded-lg bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-50"
           >
             {saving ? 'Publishing…' : 'Publish'}
@@ -257,7 +264,7 @@ export default function WriterNewStoryPage() {
           <button
             type="button"
             onClick={handleSaveDraft}
-            disabled={saving || !title.trim()}
+            disabled={saving || !title.trim() || !excerpt.trim()}
             className="px-4 py-2 rounded-lg border border-stone-300 text-stone-700 text-sm font-medium hover:bg-stone-50 disabled:opacity-50"
           >
             {saving ? 'Saving…' : 'Save draft'}

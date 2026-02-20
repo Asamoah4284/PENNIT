@@ -17,10 +17,8 @@ import WriterNewStoryPage from './pages/WriterNewStoryPage'
 import WriterStoryAnalyticsPage from './pages/WriterStoryAnalyticsPage'
 import PricingPage from './pages/PricingPage'
 
-/** Readers only: writers are redirected to writers-dashboard */
+/** Reader area access: both readers and writers can browse reader screens */
 function RequireReader({ children }) {
-  const user = getUser()
-  if (user?.role === 'writer') return <Navigate to="/writers-dashboard" replace />
   return children
 }
 

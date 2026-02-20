@@ -1,14 +1,24 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { getUser, logout } from '../lib/auth'
 import { useConfig } from '../contexts/ConfigContext'
-import { useState, useEffect } from 'react'
+import { getAssetUrl } from '../lib/api'
+import { useState, useEffect, useRef } from 'react'
 
 export default function Header({ onToggleLeftSidebar }) {
+  const [userTick, setUserTick] = useState(0)
   const user = getUser()
   const { monetizationEnabled } = useConfig()
   const navigate = useNavigate()
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const profileMenuRef = useRef(null)
+
+  useEffect(() => {
+    const onUserUpdated = () => setUserTick((t) => t + 1)
+    window.addEventListener('pennit:user-updated', onUserUpdated)
+    return () => window.removeEventListener('pennit:user-updated', onUserUpdated)
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -25,8 +35,20 @@ export default function Header({ onToggleLeftSidebar }) {
     return () => { document.body.style.overflow = 'unset' }
   }, [isSidebarOpen])
 
-  const displayName = user?.penName || user?.email?.split('@')[0] || 'User'
+  useEffect(() => {
+    if (!isProfileMenuOpen) return
+    const handleClickOutside = (e) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setIsProfileMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isProfileMenuOpen])
+
+  const displayName = user?.name || user?.penName || user?.email?.split('@')[0] || 'User'
   const initial = displayName[0].toUpperCase()
+  const avatarUrl = user?.avatarUrl
 
   return (
     <>
@@ -94,13 +116,24 @@ export default function Header({ onToggleLeftSidebar }) {
                 </button>
 
                 {/* Avatar / Profile Dropdown */}
-                <div className="relative group cursor-pointer ml-2">
-                  <div className="w-9 h-9 rounded-full bg-stone-800 text-white flex items-center justify-center font-semibold text-base select-none shadow-sm ring-2 ring-stone-100 hover:ring-stone-300 transition-all">
-                    {initial}
-                  </div>
+                <div className="relative ml-2" ref={profileMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                    className="w-9 h-9 rounded-full bg-stone-800 text-white flex items-center justify-center font-semibold text-base select-none shadow-sm ring-2 ring-stone-100 hover:ring-stone-300 transition-all overflow-hidden"
+                    aria-label="Open profile menu"
+                    aria-expanded={isProfileMenuOpen}
+                  >
+                    {avatarUrl ? (
+                      <img src={getAssetUrl(avatarUrl)} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      initial
+                    )}
+                  </button>
 
                   {/* Dropdown Menu */}
-                  <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-lg border border-stone-100 overflow-hidden hidden group-hover:block z-50 transform origin-top-right transition-all">
+                  {isProfileMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-lg border border-stone-100 overflow-hidden z-50 transform origin-top-right transition-all">
                     <div className="px-4 py-3 border-b border-stone-100 bg-stone-50">
                       <p className="text-base font-semibold text-stone-900 truncate">{displayName}</p>
                       <p className="text-sm text-stone-500 truncate">{user.email}</p>
@@ -108,11 +141,11 @@ export default function Header({ onToggleLeftSidebar }) {
 
                     <div className="py-1">
                       {user.role === 'writer' ? (
-                        <Link to="/writers-dashboard" className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Overview</Link>
+                        <Link to="/writers-dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Dashboard</Link>
                       ) : (
                         <>
-                          <Link to="/home" className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Home</Link>
-                          <Link to="/reader" className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Discover</Link>
+                          <Link to="/home" onClick={() => setIsProfileMenuOpen(false)} className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Home</Link>
+                          <Link to="/reader" onClick={() => setIsProfileMenuOpen(false)} className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Discover</Link>
                         </>
                       )}
                     </div>
@@ -124,6 +157,7 @@ export default function Header({ onToggleLeftSidebar }) {
                       Sign out
                     </button>
                   </div>
+                  )}
                 </div>
               </>
             ) : (
@@ -165,27 +199,22 @@ export default function Header({ onToggleLeftSidebar }) {
             </button> */}
           </div>
 
-          {/* Navigation List - role-based */}
+          {/* Navigation List */}
           <nav className="space-y-2">
-            {user?.role === 'writer' ? (
-              <>
-                <SidebarLink to="/writers-dashboard" icon={<HomeIcon />} label="Overview" onClick={() => setIsSidebarOpen(false)} />
-              </>
-            ) : (
-              <>
-                <SidebarLink to="/home" icon={<HomeIcon />} label="Home" onClick={() => setIsSidebarOpen(false)} />
-                <SidebarLink to="/reader" icon={<StoriesIcon />} label="Discover" onClick={() => setIsSidebarOpen(false)} />
-                <SidebarLink to="/library" icon={<LibraryIcon />} label="Library" onClick={() => setIsSidebarOpen(false)} />
-                <SidebarLink to="/profile" icon={<UserIcon />} label="Profile" onClick={() => setIsSidebarOpen(false)} />
-                <SidebarLink to="/stats" icon={<StatsIcon />} label="Stats" onClick={() => setIsSidebarOpen(false)} />
-                {monetizationEnabled && (
-                  <SidebarLink to="/pricing" icon={<PricingIcon />} label="Subscribe" onClick={() => setIsSidebarOpen(false)} />
-                )}
-              </>
+            <SidebarLink to="/home" icon={<HomeIcon />} label="Home" onClick={() => setIsSidebarOpen(false)} />
+            <SidebarLink to="/reader" icon={<StoriesIcon />} label="Discover" onClick={() => setIsSidebarOpen(false)} />
+            <SidebarLink to="/library" icon={<LibraryIcon />} label="Library" onClick={() => setIsSidebarOpen(false)} />
+            <SidebarLink to="/profile" icon={<UserIcon />} label="Profile" onClick={() => setIsSidebarOpen(false)} />
+            <SidebarLink to="/stats" icon={<StatsIcon />} label="Stats" onClick={() => setIsSidebarOpen(false)} />
+            {monetizationEnabled && (
+              <SidebarLink to="/pricing" icon={<PricingIcon />} label="Subscribe" onClick={() => setIsSidebarOpen(false)} />
+            )}
+            {user?.role === 'writer' && (
+              <SidebarLink to="/writers-dashboard" icon={<HomeIcon />} label="Dashboard" onClick={() => setIsSidebarOpen(false)} />
             )}
           </nav>
 
-          {user?.role !== 'writer' && (
+          {user && (
             <>
               <div className="my-8 border-t border-stone-100"></div>
               <div>

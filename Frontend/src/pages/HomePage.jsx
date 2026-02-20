@@ -271,13 +271,13 @@ function StoryCard({
           )}
         </div>
         <div className="flex items-center gap-1 text-sm min-w-0 truncate">
-          {publication && (
+          {publication && publication !== 'General' && (
             <>
-              <span className="text-stone-500">In</span>
-              <Link to={`/publication/${publication.toLowerCase().replace(/\s+/g, '-')}`} className="font-medium text-stone-700 hover:underline">
+              <span className="text-stone-500">Genre:</span>
+              <Link to={`/genre/${publication.toLowerCase().replace(/\s+/g, '-')}`} className="font-medium text-stone-700 hover:underline">
                 {publication}
               </Link>
-              <span className="text-stone-500">by</span>
+              <span className="text-stone-400">·</span>
             </>
           )}
           <Link to={`/author/${author?.id}`} className="font-medium text-stone-900 hover:underline">

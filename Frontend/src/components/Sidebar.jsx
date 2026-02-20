@@ -4,18 +4,7 @@ import { getUser } from '../lib/auth'
 export default function Sidebar() {
     const user = getUser()
     const location = useLocation()
-    const isWriter = user?.role === 'writer'
     const isActive = (path) => location.pathname === path
-
-    if (isWriter) {
-        return (
-            <div className="sticky top-16 p-6 h-[calc(100vh-4rem)] overflow-y-auto">
-                <nav className="space-y-1">
-                    <SidebarLink to="/writers-dashboard" icon={<HomeIcon />} label="Overview" active={isActive('/writers-dashboard')} />
-                </nav>
-            </div>
-        )
-    }
 
     return (
         <div className="sticky top-16 p-6 h-[calc(100vh-4rem)] overflow-y-auto">

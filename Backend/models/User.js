@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ['reader', 'writer'], default: 'reader' },
     penName: { type: String, default: '' },
     authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Author', default: null },
+    avatarUrl: { type: String, default: '' },
+    bio: { type: String, default: '' },
   },
   {
     timestamps: true,

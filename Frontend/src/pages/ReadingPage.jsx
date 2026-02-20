@@ -28,6 +28,23 @@ function stripHtml(html) {
   return html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ')
 }
 
+const WRITER_FREE_POEM_LIMIT = 2
+const WRITER_FREE_POEM_KEY = 'pennit_writer_free_poems'
+
+function getWriterFreePoemIds() {
+  try {
+    const raw = localStorage.getItem(WRITER_FREE_POEM_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function saveWriterFreePoemIds(ids) {
+  localStorage.setItem(WRITER_FREE_POEM_KEY, JSON.stringify(ids))
+}
+
 export default function ReadingPage() {
   const { id } = useParams()
   const location = useLocation()
@@ -58,8 +75,17 @@ export default function ReadingPage() {
   const { monetizationEnabled } = useConfig()
   const [subscriptionLoading, setSubscriptionLoading] = useState(true)
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false)
+  const [writerPoemUnlocked, setWriterPoemUnlocked] = useState(false)
 
-  const showFullContent = !monetizationEnabled || hasActiveSubscription
+  const writerNeedsSubscription =
+    monetizationEnabled &&
+    user?.role === 'writer' &&
+    !hasActiveSubscription
+
+  const showFullContent =
+    !monetizationEnabled ||
+    hasActiveSubscription ||
+    (writerNeedsSubscription && writerPoemUnlocked)
 
   useEffect(() => {
     if (!id) {
@@ -145,6 +171,36 @@ export default function ReadingPage() {
       return () => clearTimeout(t)
     }
   }, [replyingToId])
+
+  /**
+   * Writers without a subscription can read up to 2 poems in full when monetization is enabled.
+   * We persist unlocked poem IDs in localStorage.
+   */
+  useEffect(() => {
+    if (!work?.id || !monetizationEnabled || user?.role !== 'writer' || hasActiveSubscription) {
+      setWriterPoemUnlocked(false)
+      return
+    }
+    if (work.category !== 'poem') {
+      setWriterPoemUnlocked(false)
+      return
+    }
+
+    const unlockedIds = getWriterFreePoemIds()
+    if (unlockedIds.includes(work.id)) {
+      setWriterPoemUnlocked(true)
+      return
+    }
+
+    if (unlockedIds.length < WRITER_FREE_POEM_LIMIT) {
+      const next = [...unlockedIds, work.id]
+      saveWriterFreePoemIds(next)
+      setWriterPoemUnlocked(true)
+      return
+    }
+
+    setWriterPoemUnlocked(false)
+  }, [work?.id, work?.category, monetizationEnabled, user?.role, hasActiveSubscription])
 
   const handleClap = async () => {
     if (!user?.id || pendingAction) return
@@ -421,7 +477,9 @@ export default function ReadingPage() {
           <div className="mt-6 p-6 rounded-xl border border-stone-200 bg-stone-50 max-w-2xl">
             <p className="text-stone-700 font-medium mb-2">Subscribe to read the full story</p>
             <p className="text-stone-600 text-sm mb-4">
-              Get full access to all stories on Pennit with a monthly subscription.
+              {writerNeedsSubscription
+                ? `As a writer without a subscription, you can read up to ${WRITER_FREE_POEM_LIMIT} poems in full. Subscribe to unlock all stories.`
+                : 'Get full access to all stories on Pennit with a monthly subscription.'}
             </p>
             <Link
               to="/pricing"

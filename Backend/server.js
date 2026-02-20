@@ -12,6 +12,8 @@ import uploadRouter from './routes/upload.js'
 import postsRouter from './routes/posts.js'
 import subscriptionsRouter from './routes/subscriptions.js'
 import earningsRouter from './routes/earnings.js'
+import writerStatsRouter from './routes/writerStats.js'
+import usersRouter from './routes/users.js'
 import { clientIpMiddleware } from './middleware/clientIp.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -36,6 +38,8 @@ app.use('/api/upload', uploadRouter)
 app.use('/api/posts', postsRouter)
 app.use('/api/subscriptions', subscriptionsRouter)
 app.use('/api/earnings', earningsRouter)
+app.use('/api/writers', writerStatsRouter)
+app.use('/api/users', usersRouter)
 
 app.get('/', (req, res) => {
   res.json({ name: 'PENNIT API', health: '/api/health', docs: 'Use /api/works, /api/authors, /api/auth, etc.' })

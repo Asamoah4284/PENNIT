@@ -4,7 +4,6 @@ import { getSavedWorks, getAssetUrl } from '../lib/api'
 import { getUser } from '../lib/auth'
 
 const TABS = [
-  { id: 'your-lists', label: 'Your lists' },
   { id: 'saved-lists', label: 'Saved lists' },
   { id: 'highlights', label: 'Highlights' },
   { id: 'reading-history', label: 'Reading history' },
@@ -12,7 +11,7 @@ const TABS = [
 ]
 
 export default function LibraryPage() {
-  const [activeTab, setActiveTab] = useState('your-lists')
+  const [activeTab, setActiveTab] = useState('saved-lists')
   const [showCreateCard, setShowCreateCard] = useState(true)
   const [savedWorks, setSavedWorks] = useState([])
   const [savedLoading, setSavedLoading] = useState(false)

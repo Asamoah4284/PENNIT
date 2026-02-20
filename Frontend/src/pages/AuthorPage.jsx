@@ -86,8 +86,16 @@ export default function AuthorPage() {
       <header className="mb-10">
         <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-start sm:items-center justify-between">
           <div className="flex items-start gap-4 sm:gap-6">
-            <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-amber-100 to-yellow-200 flex items-center justify-center text-2xl sm:text-3xl font-bold text-amber-800 border-2 border-amber-200/80">
-              {author.penName?.charAt(0)?.toUpperCase() || '?'}
+            <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-amber-100 to-yellow-200 flex items-center justify-center text-2xl sm:text-3xl font-bold text-amber-800 border-2 border-amber-200/80 overflow-hidden">
+              {author.avatarUrl ? (
+                <img
+                  src={getAssetUrl(author.avatarUrl)}
+                  alt={author.penName || 'Author'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                author.penName?.charAt(0)?.toUpperCase() || '?'
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 font-serif tracking-tight">

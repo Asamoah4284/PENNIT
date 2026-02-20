@@ -65,13 +65,31 @@ export async function login({ email, password }) {
   return handleResponse(res)
 }
 
-/** Upload an image file (e.g. thumbnail). Returns { url }. */
+/** Upload an image file (e.g. thumbnail, profile). Returns { url }. */
 export async function uploadImage(file) {
   const formData = new FormData()
   formData.append('file', file)
   const res = await fetch(`${API_BASE}/api/upload`, {
     method: 'POST',
     body: formData,
+  })
+  return handleResponse(res)
+}
+
+/** GET /api/users/me - Current user profile (name, bio, avatarUrl; writers get author merged). */
+export async function getMe(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/users/me`, { headers })
+  return handleResponse(res)
+}
+
+/** PATCH /api/users/me - Update profile (name, bio, avatarUrl, penName for writers). */
+export async function updateProfile(userId, payload) {
+  const res = await fetch(`${API_BASE}/api/users/me`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+    body: JSON.stringify(payload),
   })
   return handleResponse(res)
 }
@@ -253,6 +271,14 @@ export async function cancelSubscription(userId) {
     method: 'POST',
     headers,
   })
+  return handleResponse(res)
+}
+
+/** GET /api/writers/me/stats - Writer stats: reads, claps, followers, daily/monthly trends, top works. */
+export async function getWriterStats(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/writers/me/stats`, { headers })
   return handleResponse(res)
 }
 
