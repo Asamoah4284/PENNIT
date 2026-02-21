@@ -27,7 +27,23 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'PENNIT API is running' })
 })
 
-app.use(cors())
+const allowedOrigins = [
+  'https://pennit.io',
+  'https://www.pennit.io',
+  'http://localhost:5173',
+]
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}))
+
+// Explicitly handle preflight for all routes
+app.options('*', cors())
 app.use(express.json())
 app.use(clientIpMiddleware)
 
