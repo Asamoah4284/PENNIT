@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getWriterStats } from '../lib/api'
 import { getUser } from '../lib/auth'
 
@@ -244,19 +244,58 @@ export default function StatsPage() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
+  const fetchStats = useCallback((showLoading = true) => {
     const user = getUser()
     if (!user) {
       setError('Not logged in.')
       setLoading(false)
       return
     }
+    if (showLoading) setLoading(true)
+    else setRefreshing(true)
+    setError(null)
     getWriterStats(user.id)
-      .then(setStats)
-      .catch((err) => setError(err.message || 'Failed to load stats'))
-      .finally(() => setLoading(false))
+      .then((data) => {
+        setStats(data)
+        setLastUpdated(new Date())
+      })
+      .catch((err) => {
+        const msg = err?.message || 'Failed to load stats'
+        if (msg.includes('Writer account not found')) {
+          setError(user.role === 'writer'
+            ? 'Your writer profile could not be loaded. Try signing out and signing in again.'
+            : 'Stats are for writers. Sign in with a writer account to see your stats.')
+        } else {
+          setError(msg)
+        }
+      })
+      .finally(() => {
+        setLoading(false)
+        setRefreshing(false)
+      })
   }, [])
+
+  useEffect(() => {
+    fetchStats(true)
+  }, [fetchStats])
+
+  // Auto-refresh every 60 seconds for live stats
+  useEffect(() => {
+    const interval = setInterval(() => fetchStats(false), 60 * 1000)
+    return () => clearInterval(interval)
+  }, [fetchStats])
+
+  // Refresh when user returns to the tab/window
+  useEffect(() => {
+    const onFocus = () => fetchStats(false)
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [fetchStats])
+
+  const handleRefresh = () => fetchStats(false)
 
   const donutData = (stats?.contentBreakdown ?? []).map((b) => ({
     label: b.label,
@@ -270,8 +309,25 @@ export default function StatsPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-stone-900">Stats</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-stone-900">Stats</h1>
+          {lastUpdated && !error && (
+            <p className="text-stone-500 text-sm mt-1">
+              Live data · Last updated {lastUpdated.toLocaleTimeString()}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={loading || refreshing}
+            className="px-4 py-2 rounded-lg border border-stone-300 text-stone-700 text-sm font-medium hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

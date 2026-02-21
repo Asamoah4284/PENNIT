@@ -8,7 +8,7 @@ export default function Layout() {
   const location = useLocation()
   const [isLeftSidebarVisible, setIsLeftSidebarVisible] = useState(true)
   const isAuthorPage = location.pathname.startsWith('/author/')
-  const hideRightSidebar = ['/library', '/profile', '/stories', '/stats', '/writers-dashboard'].includes(location.pathname) || isAuthorPage
+  const hideRightSidebar = ['/library', '/profile', '/stories', '/stats', '/reading-stats', '/writers-dashboard'].includes(location.pathname) || isAuthorPage
 
   return (
     <div className="min-h-screen flex flex-col">

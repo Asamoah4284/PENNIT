@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import mongoose from 'mongoose'
 import User from '../models/User.js'
+import Author from '../models/Author.js'
 import Work from '../models/Work.js'
 import AuthorFollow from '../models/AuthorFollow.js'
 import WorkRead from '../models/WorkRead.js'
@@ -10,7 +11,7 @@ const router = Router()
 /**
  * GET /api/writers/me/stats
  * Returns stats for the authenticated writer identified by x-user-id header.
- * Includes totals, daily/monthly read trends, content breakdown, and top works.
+ * If user is a writer but has no authorId, creates an Author and links it (same as login).
  */
 router.get('/me/stats', async (req, res) => {
   try {
@@ -19,9 +20,21 @@ router.get('/me/stats', async (req, res) => {
       return res.status(401).json({ error: 'Authentication required' })
     }
 
-    const user = await User.findById(rawUserId).lean()
-    if (!user || user.role !== 'writer' || !user.authorId) {
+    let user = await User.findById(rawUserId)
+    if (!user) {
       return res.status(403).json({ error: 'Writer account not found' })
+    }
+    if (user.role !== 'writer') {
+      return res.status(403).json({ error: 'Writer account not found' })
+    }
+    if (!user.authorId) {
+      const author = await Author.create({
+        penName: (user.penName || user.name || '').trim() || user.email.split('@')[0],
+        bio: '',
+        avatarUrl: '',
+      })
+      user.authorId = author._id
+      await user.save()
     }
 
     const authorId = user.authorId

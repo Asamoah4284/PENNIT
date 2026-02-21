@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
 import Author from '../models/Author.js'
@@ -92,6 +93,41 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('Login error:', err)
     res.status(500).json({ error: 'Could not sign in. Please try again.' })
+  }
+})
+
+/** POST /api/auth/change-password - Change password (requires x-user-id and current password). */
+router.post('/change-password', async (req, res) => {
+  try {
+    const rawUserId = req.headers['x-user-id']
+    if (!rawUserId || !mongoose.Types.ObjectId.isValid(String(rawUserId))) {
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+    const { currentPassword, newPassword } = req.body
+    if (!currentPassword || typeof currentPassword !== 'string') {
+      return res.status(400).json({ error: 'Current password is required' })
+    }
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters' })
+    }
+
+    const user = await User.findById(rawUserId)
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    const match = await bcrypt.compare(currentPassword, user.password)
+    if (!match) {
+      return res.status(401).json({ error: 'Current password is incorrect' })
+    }
+
+    user.password = newPassword
+    await user.save()
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error('Change password error:', err)
+    res.status(500).json({ error: 'Could not change password. Please try again.' })
   }
 })
 

@@ -11,6 +11,7 @@ import LibraryPage from './pages/LibraryPage'
 import ProfilePage from './pages/ProfilePage'
 import StoriesPage from './pages/StoriesPage'
 import StatsPage from './pages/StatsPage'
+import ReadingStatsPage from './pages/ReadingStatsPage'
 import WritersDashboardPage from './pages/WritersDashboardPage'
 import WriterStoryPage from './pages/WriterStoryPage'
 import WriterNewStoryPage from './pages/WriterNewStoryPage'
@@ -55,6 +56,9 @@ function App() {
       </Route>
       <Route path="/stats" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<StatsPage />} />
+      </Route>
+      <Route path="/reading-stats" element={<RequireReader><Layout /></RequireReader>}>
+        <Route index element={<ReadingStatsPage />} />
       </Route>
       <Route path="/reading/:id" element={<RequireReader><Layout /></RequireReader>}>
         <Route index element={<ReadingPage />} />

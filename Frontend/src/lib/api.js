@@ -84,13 +84,31 @@ export async function getMe(userId) {
   return handleResponse(res)
 }
 
-/** PATCH /api/users/me - Update profile (name, bio, avatarUrl, penName for writers). */
+/** PATCH /api/users/me - Update profile (name, bio, avatarUrl, penName, or email with password for verification). */
 export async function updateProfile(userId, payload) {
   const res = await fetch(`${API_BASE}/api/users/me`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
     body: JSON.stringify(payload),
   })
+  return handleResponse(res)
+}
+
+/** POST /api/auth/change-password - Change password (currentPassword, newPassword). */
+export async function changePassword(userId, { currentPassword, newPassword }) {
+  const res = await fetch(`${API_BASE}/api/auth/change-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  })
+  return handleResponse(res)
+}
+
+/** GET /api/users/me/following - List authors the current user follows. */
+export async function getMyFollowing(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/users/me/following`, { headers })
   return handleResponse(res)
 }
 
@@ -279,6 +297,14 @@ export async function getWriterStats(userId) {
   const headers = {}
   if (userId) headers['x-user-id'] = userId
   const res = await fetch(`${API_BASE}/api/writers/me/stats`, { headers })
+  return handleResponse(res)
+}
+
+/** GET /api/readers/me/stats - Reader reading progress: works read, time spent, saved count, trends, recent reads. */
+export async function getReaderStats(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/readers/me/stats`, { headers })
   return handleResponse(res)
 }
 

@@ -1,9 +1,12 @@
 import { Router } from 'express'
 import mongoose from 'mongoose'
+import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
 import Author from '../models/Author.js'
+import AuthorFollow from '../models/AuthorFollow.js'
 
 const router = Router()
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /**
  * GET /api/users/me
@@ -41,10 +44,12 @@ router.get('/me', async (req, res) => {
           penName: author.penName,
           bio: author.bio || '',
           avatarUrl: author.avatarUrl || '',
+          followerCount: author.followerCount ?? 0,
         }
         profile.penName = author.penName
         profile.bio = author.bio || user.bio || ''
         profile.avatarUrl = author.avatarUrl || user.avatarUrl || ''
+        profile.followerCount = author.followerCount ?? 0
       }
     }
 
@@ -57,7 +62,8 @@ router.get('/me', async (req, res) => {
 
 /**
  * PATCH /api/users/me
- * Update current user profile: name, bio, avatarUrl. Writers: also update Author (penName, bio, avatarUrl).
+ * Update current user profile: name, bio, avatarUrl, email. Writers: also update Author (penName, bio, avatarUrl).
+ * Changing email requires current password in body (password).
  */
 router.patch('/me', async (req, res) => {
   try {
@@ -71,7 +77,28 @@ router.patch('/me', async (req, res) => {
       return res.status(404).json({ error: 'User not found' })
     }
 
-    const { name, bio, avatarUrl, penName } = req.body
+    const { name, bio, avatarUrl, penName, email, password } = req.body
+
+    if (email !== undefined && typeof email === 'string') {
+      const newEmail = email.trim().toLowerCase()
+      if (!EMAIL_REGEX.test(newEmail)) {
+        return res.status(400).json({ error: 'Please enter a valid email address' })
+      }
+      if (newEmail !== user.email) {
+        const existing = await User.findOne({ email: newEmail })
+        if (existing) {
+          return res.status(409).json({ error: 'An account with this email already exists' })
+        }
+        if (!password || typeof password !== 'string') {
+          return res.status(400).json({ error: 'Current password is required to change email' })
+        }
+        const match = await bcrypt.compare(password, user.password)
+        if (!match) {
+          return res.status(401).json({ error: 'Current password is incorrect' })
+        }
+        user.email = newEmail
+      }
+    }
 
     if (name !== undefined && typeof name === 'string') {
       user.name = name.trim()
@@ -125,6 +152,38 @@ router.patch('/me', async (req, res) => {
   } catch (err) {
     console.error('[users/me PATCH] Error:', err)
     res.status(500).json({ error: 'Failed to update profile' })
+  }
+})
+
+/**
+ * GET /api/users/me/following
+ * List authors the current user follows (for sidebar).
+ */
+router.get('/me/following', async (req, res) => {
+  try {
+    const rawUserId = req.headers['x-user-id']
+    if (!rawUserId || !mongoose.Types.ObjectId.isValid(String(rawUserId))) {
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+
+    const follows = await AuthorFollow.find({ followerId: rawUserId })
+      .populate('authorId', 'penName avatarUrl')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean()
+
+    const following = follows
+      .filter((f) => f.authorId)
+      .map((f) => ({
+        id: f.authorId._id.toString(),
+        penName: f.authorId.penName,
+        avatarUrl: f.authorId.avatarUrl || '',
+      }))
+
+    res.json({ following })
+  } catch (err) {
+    console.error('[users/me/following] Error:', err)
+    res.status(500).json({ error: 'Failed to load following' })
   }
 })
 

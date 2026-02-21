@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { getUser, setUser } from '../lib/auth'
-import { getMe, updateProfile, uploadImage, getAssetUrl } from '../lib/api'
+import { getMe, updateProfile, changePassword, uploadImage, getAssetUrl } from '../lib/api'
 import ImageCropModal from '../components/ImageCropModal'
 
 const TABS = [
@@ -23,6 +23,18 @@ export default function ProfilePage() {
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [cropImageSrc, setCropImageSrc] = useState(null)
   const fileInputRef = useRef(null)
+  const [emailModalOpen, setEmailModalOpen] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [confirmEmail, setConfirmEmail] = useState('')
+  const [emailPassword, setEmailPassword] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [emailSaving, setEmailSaving] = useState(false)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
 
   const user = getUser()
 
@@ -164,7 +176,20 @@ export default function ProfilePage() {
           <p className="text-stone-600">Notification and display preferences will appear here.</p>
         )}
         {activeTab === 'account' && (
-          <p className="text-stone-600">Email, password, and account security options will appear here.</p>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-medium text-stone-500 uppercase tracking-wider mb-1.5">Email</label>
+              <p className="text-stone-900 font-medium">
+                {loading ? '…' : (profile?.email ?? user?.email ?? '—')}
+              </p>
+              <p className="text-stone-500 text-sm mt-0.5">Used to sign in. Contact support to change.</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-stone-500 uppercase tracking-wider mb-1.5">Password</label>
+              <p className="text-stone-900 font-medium tracking-wider">••••••••</p>
+              <p className="text-stone-500 text-sm mt-0.5">Hidden for security. Use Change password to set a new one.</p>
+            </div>
+          </div>
         )}
       </div>
 
