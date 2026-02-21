@@ -28,7 +28,7 @@ app.get('/api/health', (req, res) => {
 })
 
 const allowedOrigins = [
-  'https://pennit.io',
+  'https://pennit.io/',
   'https://www.pennit.io',
   'http://localhost:5173',
 ]
