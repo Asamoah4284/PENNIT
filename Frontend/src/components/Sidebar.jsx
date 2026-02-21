@@ -42,6 +42,7 @@ export default function Sidebar() {
             <SidebarLink to="/writers-dashboard" icon={<DashboardIcon />} label="Dashboard" active={location.pathname.startsWith('/writers-dashboard')} />
           </>
         )}
+
       </nav>
 
       {/* Following section */}

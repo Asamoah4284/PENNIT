@@ -15,6 +15,7 @@ import earningsRouter from './routes/earnings.js'
 import writerStatsRouter from './routes/writerStats.js'
 import readerStatsRouter from './routes/readerStats.js'
 import usersRouter from './routes/users.js'
+import adminRouter from './routes/admin.js'
 import { clientIpMiddleware } from './middleware/clientIp.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -42,6 +43,7 @@ app.use('/api/earnings', earningsRouter)
 app.use('/api/writers', writerStatsRouter)
 app.use('/api/readers', readerStatsRouter)
 app.use('/api/users', usersRouter)
+app.use('/api/victor-access-control', adminRouter)
 
 app.get('/', (req, res) => {
   res.json({ name: 'PENNIT API', health: '/api/health', docs: 'Use /api/works, /api/authors, /api/auth, etc.' })

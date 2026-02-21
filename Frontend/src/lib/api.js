@@ -335,3 +335,86 @@ export async function setPayoutMethod(userId, { type, bankCode, accountNumber, a
   })
   return handleResponse(res)
 }
+
+/** --- Admin APIs --- */
+
+/** GET /api/victor-access-control/stats - Admin dashboard stats. */
+export async function getAdminStats(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/victor-access-control/stats`, { headers })
+  return handleResponse(res)
+}
+
+/** GET /api/victor-access-control/users - Admin list all users. */
+export async function getAdminUsers(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/victor-access-control/users`, { headers })
+  return handleResponse(res)
+}
+
+/** PATCH /api/victor-access-control/users/:id - Admin update user role. */
+export async function updateAdminUserRole(userId, targetUserId, role) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/victor-access-control/users/${targetUserId}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ role }),
+  })
+  return handleResponse(res)
+}
+
+/** DELETE /api/victor-access-control/users/:id - Admin delete a user. */
+export async function deleteAdminUser(userId, targetUserId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/victor-access-control/users/${targetUserId}`, {
+    method: 'DELETE',
+    headers,
+  })
+  return handleResponse(res)
+}
+
+/** GET /api/victor-access-control/works - Admin list all works. */
+export async function getAdminWorks(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/victor-access-control/works`, { headers })
+  return handleResponse(res)
+}
+
+/** DELETE /api/victor-access-control/works/:id - Admin delete work. */
+export async function deleteAdminWork(userId, workId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/victor-access-control/works/${workId}`, {
+    method: 'DELETE',
+    headers,
+  })
+  return handleResponse(res)
+}
+
+/** PATCH /api/victor-access-control/works/:id/approve - Approve a pending work. */
+export async function approveAdminWork(userId, workId) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/victor-access-control/works/${workId}/approve`, {
+    method: 'PATCH',
+    headers,
+  })
+  return handleResponse(res)
+}
+
+/** PATCH /api/victor-access-control/works/:id - Admin edit a work. */
+export async function editAdminWork(userId, workId, updates) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/victor-access-control/works/${workId}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(updates),
+  })
+  return handleResponse(res)
+}

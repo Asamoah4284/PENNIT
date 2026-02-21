@@ -29,10 +29,10 @@ function formatWork(w) {
   }
 }
 
-/** GET /api/works - List all works */
+/** GET /api/works - List all works (public: published only) */
 router.get('/', async (req, res) => {
   try {
-    const works = await Work.find()
+    const works = await Work.find({ status: 'published' })
       .populate('authorId', 'penName avatarUrl')
       .sort({ createdAt: -1 })
       .lean()
@@ -94,7 +94,7 @@ router.post('/', async (req, res) => {
       body: typeof body === 'string' ? body.trim() : '',
       readCount: 0,
       thumbnailUrl: (thumbnailUrl || '').trim(),
-      status: status === 'draft' ? 'draft' : 'published',
+      status: status === 'draft' ? 'draft' : 'pending',
       topics,
     })
     const populated = await Work.findById(work._id)
@@ -147,7 +147,7 @@ router.put('/:id', async (req, res) => {
     if (req.body.topics !== undefined) {
       work.topics = normalizeTopics(req.body.topics)
     }
-    if (status !== undefined && ['draft', 'published'].includes(status)) work.status = status
+    if (status !== undefined && ['draft', 'pending', 'published'].includes(status)) work.status = status
     await work.save()
     const populated = await Work.findById(work._id)
       .populate('authorId', 'penName avatarUrl')

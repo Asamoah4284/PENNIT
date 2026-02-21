@@ -133,30 +133,30 @@ export default function Header({ onToggleLeftSidebar }) {
 
                   {/* Dropdown Menu */}
                   {isProfileMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-lg border border-stone-100 overflow-hidden z-50 transform origin-top-right transition-all">
-                    <div className="px-4 py-3 border-b border-stone-100 bg-stone-50">
-                      <p className="text-base font-semibold text-stone-900 truncate">{displayName}</p>
-                      <p className="text-sm text-stone-500 truncate">{user.email}</p>
-                    </div>
+                    <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-lg border border-stone-100 overflow-hidden z-50 transform origin-top-right transition-all">
+                      <div className="px-4 py-3 border-b border-stone-100 bg-stone-50">
+                        <p className="text-base font-semibold text-stone-900 truncate">{displayName}</p>
+                        <p className="text-sm text-stone-500 truncate">{user.email}</p>
+                      </div>
 
-                    <div className="py-1">
-                      {user.role === 'writer' ? (
-                        <Link to="/writers-dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Dashboard</Link>
-                      ) : (
-                        <>
-                          <Link to="/home" onClick={() => setIsProfileMenuOpen(false)} className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Home</Link>
-                          <Link to="/reader" onClick={() => setIsProfileMenuOpen(false)} className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Discover</Link>
-                        </>
-                      )}
-                    </div>
+                      <div className="py-1">
+                        {user.role === 'writer' ? (
+                          <Link to="/writers-dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Dashboard</Link>
+                        ) : (
+                          <>
+                            <Link to="/home" onClick={() => setIsProfileMenuOpen(false)} className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Home</Link>
+                            <Link to="/reader" onClick={() => setIsProfileMenuOpen(false)} className="block px-4 py-2 text-base text-stone-600 hover:bg-stone-50 hover:text-stone-900">Discover</Link>
+                          </>
+                        )}
+                      </div>
 
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left px-4 py-3 text-base text-stone-600 hover:bg-stone-50 border-t border-stone-100 hover:text-red-600 transition-colors"
-                    >
-                      Sign out
-                    </button>
-                  </div>
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full text-left px-4 py-3 text-base text-stone-600 hover:bg-stone-50 border-t border-stone-100 hover:text-red-600 transition-colors"
+                      >
+                        Sign out
+                      </button>
+                    </div>
                   )}
                 </div>
               </>
@@ -212,6 +212,7 @@ export default function Header({ onToggleLeftSidebar }) {
             {user?.role === 'writer' && (
               <SidebarLink to="/writers-dashboard" icon={<HomeIcon />} label="Dashboard" onClick={() => setIsSidebarOpen(false)} />
             )}
+
           </nav>
 
           {user && (

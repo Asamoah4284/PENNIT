@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 140" fill="none">
+  <rect width="280" height="140" fill="transparent"/>
+  <rect x="20" y="70" width="32" height="40" rx="4" fill="#292524" opacity="0.9"/>
+  <rect x="58" y="45" width="32" height="65" rx="4" fill="#292524" opacity="0.9"/>
+  <rect x="96" y="55" width="32" height="55" rx="4" fill="#292524" opacity="0.9"/>
+  <rect x="134" y="35" width="32" height="75" rx="4" fill="#292524" opacity="0.9"/>
+  <rect x="172" y="50" width="32" height="60" rx="4" fill="#292524" opacity="0.9"/>
+  <rect x="210" y="25" width="32" height="85" rx="4" fill="#292524" opacity="0.9"/>
+  <rect x="248" y="60" width="32" height="50" rx="4" fill="#292524" opacity="0.9"/>
+  <text x="36" y="118" text-anchor="middle" font-size="11" fill="#78716c" font-family="system-ui,sans-serif">Mon</text>
+  <text x="74" y="118" text-anchor="middle" font-size="11" fill="#78716c" font-family="system-ui,sans-serif">Tue</text>
+  <text x="112" y="118" text-anchor="middle" font-size="11" fill="#78716c" font-family="system-ui,sans-serif">Wed</text>
+  <text x="150" y="118" text-anchor="middle" font-size="11" fill="#78716c" font-family="system-ui,sans-serif">Thu</text>
+  <text x="188" y="118" text-anchor="middle" font-size="11" fill="#78716c" font-family="system-ui,sans-serif">Fri</text>
+  <text x="226" y="118" text-anchor="middle" font-size="11" fill="#78716c" font-family="system-ui,sans-serif">Sat</text>
+  <text x="264" y="118" text-anchor="middle" font-size="11" fill="#78716c" font-family="system-ui,sans-serif">Sun</text>
+</svg>

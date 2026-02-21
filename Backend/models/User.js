@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     phone: { type: String, default: '' },
     password: { type: String, required: true },
-    role: { type: String, enum: ['reader', 'writer'], default: 'reader' },
+    role: { type: String, enum: ['reader', 'writer', 'admin'], default: 'reader' },
     penName: { type: String, default: '' },
     authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Author', default: null },
     avatarUrl: { type: String, default: '' },

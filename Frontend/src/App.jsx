@@ -17,6 +17,9 @@ import WriterStoryPage from './pages/WriterStoryPage'
 import WriterNewStoryPage from './pages/WriterNewStoryPage'
 import WriterStoryAnalyticsPage from './pages/WriterStoryAnalyticsPage'
 import PricingPage from './pages/PricingPage'
+import AdminDashboardPage from './pages/AdminDashboardPage'
+import AdminLoginPage from './pages/AdminLoginPage'
+import AdminLayout from './components/AdminLayout'
 
 /** Reader area access: both readers and writers can browse reader screens */
 function RequireReader({ children }) {
@@ -26,7 +29,16 @@ function RequireReader({ children }) {
 /** Writers only: readers are redirected to reader home */
 function RequireWriter({ children }) {
   const user = getUser()
-  if (user && user.role !== 'writer') return <Navigate to="/reader" replace />
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== 'writer' && user.role !== 'admin') return <Navigate to="/reader" replace />
+  return children
+}
+
+/** Admins only */
+function RequireAdmin({ children }) {
+  const user = getUser()
+  if (!user) return <Navigate to="/victor-access-control/login" replace />
+  if (user.role !== 'admin') return <Navigate to="/reader" replace />
   return children
 }
 
@@ -77,6 +89,14 @@ function App() {
         <Route path="story/:id/analytics" element={<WriterStoryAnalyticsPage />} />
         <Route path="story/:id" element={<WriterStoryPage />} />
       </Route>
+
+      {/* Admin routes */}
+      <Route path="/victor-access-control" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+        <Route index element={<AdminDashboardPage tab="overview" />} />
+        <Route path="users" element={<AdminDashboardPage tab="users" />} />
+        <Route path="works" element={<AdminDashboardPage tab="works" />} />
+      </Route>
+      <Route path="/victor-access-control/login" element={<AdminLoginPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
