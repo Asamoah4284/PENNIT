@@ -29,29 +29,25 @@ app.get('/api/health', (req, res) => {
 
 /** CORS configuration */
 const allowedOrigins = [
-  'http://localhost:5173', // Dev
-  'http://127.0.0.1:5173',
-  'https://pennit.io',     // Prod
-  'https://www.pennit.io'
+  'https://pennit.io',
+  'https://www.pennit.io',
+  'http://localhost:5173',  // dev
+  'http://127.0.0.1:5173'
 ]
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g., curl, server-to-server)
-    if (!origin) return callback(null, true)
-    // Allow only allowed origins
+    if (!origin) return callback(null, true) // allow server-to-server, curl, Postman
     if (allowedOrigins.includes(origin)) return callback(null, true)
-    // Otherwise block
-    callback(new Error('CORS: Not allowed by origin'))
+    callback(new Error('CORS: Origin not allowed'))
   },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+  credentials: true,             // allow cookies / Authorization headers
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','x-user-id'],
   preflightContinue: false,
   optionsSuccessStatus: 204
 }))
 
-// Preflight requests handler
 app.options('*', cors({ origin: allowedOrigins, credentials: true }))
 
 /** Middlewares */
@@ -96,8 +92,7 @@ async function start() {
     await connectDB()
     console.log('[PENNIT] MongoDB connection established.')
   } catch (err) {
-    console.error('[PENNIT] Startup failed: database connection error.')
-    console.error('[PENNIT] Connection details:', err.message)
+    console.error('[PENNIT] Startup failed: database connection error.', err.message)
     process.exit(1)
   }
 
