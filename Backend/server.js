@@ -29,26 +29,30 @@ app.get('/api/health', (req, res) => {
 
 /** CORS configuration */
 const allowedOrigins = [
-  'http://localhost:5173',    // Vite dev server
+  'http://localhost:5173', // Dev
   'http://127.0.0.1:5173',
-  'https://pennit.io',        // Production frontend
+  'https://pennit.io',     // Prod
   'https://www.pennit.io'
 ]
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true) // Allow tools like Postman or server-to-server requests
+    // Allow requests with no origin (e.g., curl, server-to-server)
+    if (!origin) return callback(null, true)
+    // Allow only allowed origins
     if (allowedOrigins.includes(origin)) return callback(null, true)
-    callback(new Error('Not allowed by CORS'))
+    // Otherwise block
+    callback(new Error('CORS: Not allowed by origin'))
   },
-  credentials: true, // Allow cookies, Authorization headers
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+  preflightContinue: false,
   optionsSuccessStatus: 204
 }))
 
 // Preflight requests handler
-app.options('*', cors())
+app.options('*', cors({ origin: allowedOrigins, credentials: true }))
 
 /** Middlewares */
 app.use(express.json())
@@ -71,10 +75,10 @@ app.use('/api/victor-access-control', adminRouter)
 
 /** Root route */
 app.get('/', (req, res) => {
-  res.json({ 
-    name: 'PENNIT API', 
-    health: '/api/health', 
-    docs: 'Use /api/works, /api/authors, /api/auth, etc.' 
+  res.json({
+    name: 'PENNIT API',
+    health: '/api/health',
+    docs: 'Use /api/works, /api/authors, /api/auth, etc.'
   })
 })
 
