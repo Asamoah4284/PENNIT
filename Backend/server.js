@@ -22,32 +22,40 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = Number(process.env.PORT) || 3000
 
-/** Health check for Hostinger / load balancers */
+/** Health check */
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'PENNIT API is running' })
 })
 
+/** CORS configuration */
 const allowedOrigins = [
-  'https://pennit.io',
-  'https://www.pennit.io',
-  'http://localhost:5173',
+  'http://localhost:5173',    // Vite dev server
+  'http://127.0.0.1:5173',
+  'https://pennit.io',        // Production frontend
+  'https://www.pennit.io'
 ]
 
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true) // Allow tools like Postman or server-to-server requests
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    callback(new Error('Not allowed by CORS'))
+  },
+  credentials: true, // Allow cookies, Authorization headers
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
-  preflightContinue: false,
   optionsSuccessStatus: 204
 }))
 
-// Explicitly handle preflight for all routes
+// Preflight requests handler
 app.options('*', cors())
+
+/** Middlewares */
 app.use(express.json())
 app.use(clientIpMiddleware)
-
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+
+/** API routes */
 app.use('/api/config', configRouter)
 app.use('/api/works', worksRouter)
 app.use('/api/authors', authorsRouter)
@@ -61,23 +69,31 @@ app.use('/api/readers', readerStatsRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/victor-access-control', adminRouter)
 
+/** Root route */
 app.get('/', (req, res) => {
-  res.json({ name: 'PENNIT API', health: '/api/health', docs: 'Use /api/works, /api/authors, /api/auth, etc.' })
+  res.json({ 
+    name: 'PENNIT API', 
+    health: '/api/health', 
+    docs: 'Use /api/works, /api/authors, /api/auth, etc.' 
+  })
 })
 
 /** Global error handler */
 app.use((err, req, res, next) => {
   console.error('[PENNIT] Error:', err?.message || err)
-  res.status(500).json({ error: 'Something went wrong' })
+  res.status(500).json({ error: err?.message || 'Something went wrong' })
 })
 
+/** Start server */
 async function start() {
   console.log('[PENNIT] Starting…')
-
   try {
+    console.log('[PENNIT] Connecting to MongoDB...')
     await connectDB()
+    console.log('[PENNIT] MongoDB connection established.')
   } catch (err) {
     console.error('[PENNIT] Startup failed: database connection error.')
+    console.error('[PENNIT] Connection details:', err.message)
     process.exit(1)
   }
 
