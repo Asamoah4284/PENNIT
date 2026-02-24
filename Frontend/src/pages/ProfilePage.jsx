@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { getUser, setUser } from '../lib/auth'
-import { getMe, updateProfile, changePassword, uploadImage, getAssetUrl } from '../lib/api'
+import { getMe, updateProfile, changePassword, uploadImage, getAssetUrl, switchRole } from '../lib/api'
 import ImageCropModal from '../components/ImageCropModal'
+import ConfirmationModal from '../components/ConfirmationModal'
 
 const TABS = [
   { id: 'about', label: 'About' },
@@ -35,6 +36,7 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
+  const [showSwitchModal, setShowSwitchModal] = useState(false)
 
   const user = getUser()
 
@@ -130,11 +132,10 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-3 text-sm font-medium whitespace-nowrap transition-colors ${
-                  activeTab === tab.id
-                    ? 'text-stone-900 border-b-2 border-stone-900'
-                    : 'text-stone-500 hover:text-stone-700'
-                }`}
+                className={`py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
+                  ? 'text-stone-900 border-b-2 border-stone-900'
+                  : 'text-stone-500 hover:text-stone-700'
+                  }`}
               >
                 {tab.label}
               </button>
@@ -176,19 +177,65 @@ export default function ProfilePage() {
           <p className="text-stone-600">Notification and display preferences will appear here.</p>
         )}
         {activeTab === 'account' && (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-xs font-medium text-stone-500 uppercase tracking-wider mb-1.5">Email</label>
-              <p className="text-stone-900 font-medium">
-                {loading ? '…' : (profile?.email ?? user?.email ?? '—')}
+          <div className="space-y-8">
+            <div className="space-y-6">
+              <div>
+                <label className="block text-xs font-medium text-stone-500 uppercase tracking-wider mb-1.5">Email</label>
+                <p className="text-stone-900 font-medium">
+                  {loading ? '…' : (profile?.email ?? user?.email ?? '—')}
+                </p>
+                <p className="text-stone-500 text-sm mt-0.5">Used to sign in. Contact support to change.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-stone-500 uppercase tracking-wider mb-1.5">Password</label>
+                <p className="text-stone-900 font-medium tracking-wider">••••••••</p>
+                <p className="text-stone-500 text-sm mt-0.5">Hidden for security. Use Change password to set a new one.</p>
+              </div>
+            </div>
+
+            {/* Role switching */}
+            <div className="pt-6 border-t border-stone-100">
+              <h3 className="text-sm font-bold text-stone-900 mb-2">Switch Account Role</h3>
+              <p className="text-stone-600 text-sm mb-4 leading-relaxed">
+                {profile?.role === 'reader'
+                  ? "Switch to a Writer account to start publishing your own stories, poems, and novels. You'll get access to your own Writer's Dashboard."
+                  : "Switch to a Reader account. Note: You must have an active subscription to access full content as a reader."}
               </p>
-              <p className="text-stone-500 text-sm mt-0.5">Used to sign in. Contact support to change.</p>
+              <button
+                type="button"
+                onClick={() => setShowSwitchModal(true)}
+                disabled={saving || profile?.role === 'admin'}
+                className="px-4 py-2 rounded-lg border border-stone-300 text-stone-700 text-sm font-semibold hover:bg-stone-50 transition-colors disabled:opacity-50"
+              >
+                {profile?.role === 'reader' ? 'Become a Writer' : 'Become a Reader'}
+              </button>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-stone-500 uppercase tracking-wider mb-1.5">Password</label>
-              <p className="text-stone-900 font-medium tracking-wider">••••••••</p>
-              <p className="text-stone-500 text-sm mt-0.5">Hidden for security. Use Change password to set a new one.</p>
-            </div>
+
+            <ConfirmationModal
+              isOpen={showSwitchModal}
+              onClose={() => setShowSwitchModal(false)}
+              onConfirm={async () => {
+                if (!user?.id || saving) return
+                setSaving(true)
+                try {
+                  const updated = await switchRole(user.id)
+                  setProfile(updated)
+                  setUser(updated)
+                  window.dispatchEvent(new CustomEvent('pennit:user-updated'))
+                  setShowSwitchModal(false)
+                } catch (err) {
+                  alert(err.message || "Failed to switch role.")
+                } finally {
+                  setSaving(false)
+                }
+              }}
+              isLoading={saving}
+              title={profile?.role === 'reader' ? "Become a Writer?" : "Become a Reader?"}
+              message={profile?.role === 'reader'
+                ? "You'll be able to publish stories, poems, and novels to build your own audience."
+                : "Switching back to a Reader account means you'll need an active subscription to read full stories."}
+              confirmLabel={profile?.role === 'reader' ? "Yes, become a Writer" : "Yes, become a Reader"}
+            />
           </div>
         )}
       </div>

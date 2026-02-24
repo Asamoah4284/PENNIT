@@ -187,4 +187,62 @@ router.get('/me/following', async (req, res) => {
   }
 })
 
+/**
+ * POST /api/users/switch-role
+ * Switch current user between 'reader' and 'writer'.
+ * Reader -> Writer: Creates Author profile if missing.
+ */
+router.post('/switch-role', async (req, res) => {
+  try {
+    const rawUserId = req.headers['x-user-id']
+    if (!rawUserId || !mongoose.Types.ObjectId.isValid(String(rawUserId))) {
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+
+    const user = await User.findById(rawUserId)
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    if (user.role === 'admin') {
+      return res.status(400).json({ error: 'Admins cannot switch roles' })
+    }
+
+    if (user.role === 'reader') {
+      // Reader -> Writer
+      user.role = 'writer'
+      if (!user.authorId) {
+        const author = await Author.create({
+          penName: (user.penName || user.name || '').trim() || user.email.split('@')[0],
+          bio: user.bio || '',
+          avatarUrl: user.avatarUrl || '',
+        })
+        user.authorId = author._id
+      }
+    } else {
+      // Writer -> Reader
+      user.role = 'reader'
+    }
+
+    await user.save()
+
+    // Return formatted profile
+    const updated = await User.findById(user._id).lean()
+    const profile = {
+      id: updated._id.toString(),
+      email: updated.email,
+      name: updated.name,
+      role: updated.role,
+      authorId: updated.authorId?.toString() ?? null,
+      avatarUrl: updated.avatarUrl || '',
+      bio: updated.bio || '',
+    }
+
+    res.json(profile)
+  } catch (err) {
+    console.error('[users/switch-role] Error:', err)
+    res.status(500).json({ error: 'Failed to switch role' })
+  }
+})
+
 export default router

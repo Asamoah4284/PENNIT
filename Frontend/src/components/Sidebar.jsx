@@ -4,6 +4,7 @@ import { getUser } from '../lib/auth'
 import { getMyFollowing, getAssetUrl } from '../lib/api'
 
 export default function Sidebar() {
+  const [userTick, setUserTick] = useState(0)
   const user = getUser()
   const location = useLocation()
   const isActive = (path) => location.pathname === path
@@ -12,11 +13,17 @@ export default function Sidebar() {
   const menuRef = useRef(null)
 
   useEffect(() => {
+    const onUserUpdated = () => setUserTick(t => t + 1)
+    window.addEventListener('pennit:user-updated', onUserUpdated)
+    return () => window.removeEventListener('pennit:user-updated', onUserUpdated)
+  }, [])
+
+  useEffect(() => {
     if (!user?.id) return
     getMyFollowing(user.id)
       .then((data) => setFollowing(data?.following ?? []))
       .catch(() => setFollowing([]))
-  }, [user?.id])
+  }, [user?.id, userTick])
 
   useEffect(() => {
     if (followingMenuOpen === null) return

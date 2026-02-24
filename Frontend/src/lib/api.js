@@ -94,6 +94,15 @@ export async function updateProfile(userId, payload) {
   return handleResponse(res)
 }
 
+/** POST /api/users/switch-role - Switch current user between reader and writer. */
+export async function switchRole(userId) {
+  const res = await fetch(`${API_BASE}/api/users/switch-role`, {
+    method: 'POST',
+    headers: { 'x-user-id': userId },
+  })
+  return handleResponse(res)
+}
+
 /** POST /api/auth/change-password - Change password (currentPassword, newPassword). */
 export async function changePassword(userId, { currentPassword, newPassword }) {
   const res = await fetch(`${API_BASE}/api/auth/change-password`, {
