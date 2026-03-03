@@ -9,7 +9,8 @@ const router = Router()
  */
 router.get('/', (_req, res) => {
   const monetizationEnabled = process.env.MONETIZATION_ENABLED === 'true'
-  res.json({ monetizationEnabled })
+  const earlyAccessHours = parseInt(process.env.EARLY_ACCESS_HOURS || '48', 10)
+  res.json({ monetizationEnabled, earlyAccessHours })
 })
 
 export default router

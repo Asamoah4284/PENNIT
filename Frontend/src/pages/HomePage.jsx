@@ -204,6 +204,7 @@ export default function HomePage() {
           ? Array.from({ length: 3 }).map((_, index) => <HomeSkeletonCard key={index} />)
           : works.map((work) => {
               const author = work.author
+              const topics = Array.isArray(work.topics) ? work.topics : []
               return (
                 <StoryCard
                   key={work.id}
@@ -216,6 +217,7 @@ export default function HomePage() {
                   comments={work.commentCount ?? 0}
                   category={work.category}
                   publication={work.genre}
+                  topics={topics}
                   thumbnailUrl={work.thumbnailUrl}
                   clapCount={work.clapCount}
                   saved={work._saved}
@@ -239,6 +241,7 @@ function StoryCard({
   comments,
   category,
   publication,
+  topics,
   thumbnailUrl,
   clapCount,
   saved,
@@ -298,6 +301,18 @@ function StoryCard({
           <p className="text-stone-600 text-sm sm:text-base leading-relaxed line-clamp-2 mb-4">
             {excerpt}
           </p>
+          {Array.isArray(topics) && topics.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {topics.slice(0, 4).map((topic) => (
+                <span
+                  key={topic}
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-stone-100 text-[11px] font-medium text-stone-600"
+                >
+                  #{topic}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Meta Info */}
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-stone-500">

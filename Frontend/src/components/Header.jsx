@@ -12,12 +12,21 @@ export default function Header({ onToggleLeftSidebar }) {
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const [hasOverlayShadow, setHasOverlayShadow] = useState(false)
   const profileMenuRef = useRef(null)
 
   useEffect(() => {
     const onUserUpdated = () => setUserTick((t) => t + 1)
     window.addEventListener('pennit:user-updated', onUserUpdated)
     return () => window.removeEventListener('pennit:user-updated', onUserUpdated)
+  }, [])
+
+  useEffect(() => {
+    const handleResponsesOpen = (e) => {
+      setHasOverlayShadow(!!e.detail?.open)
+    }
+    window.addEventListener('pennit:responses-open', handleResponsesOpen)
+    return () => window.removeEventListener('pennit:responses-open', handleResponsesOpen)
   }, [])
 
   const handleLogout = () => {
@@ -49,10 +58,11 @@ export default function Header({ onToggleLeftSidebar }) {
   const displayName = user?.name || user?.penName || user?.email?.split('@')[0] || 'User'
   const initial = displayName[0].toUpperCase()
   const avatarUrl = user?.avatarUrl
+  const headerRaised = hasOverlayShadow || isSidebarOpen
 
   return (
     <>
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
+      <header className={`bg-white border-b border-stone-200 sticky top-0 z-50 transition-shadow duration-200 ${headerRaised ? 'shadow-[0_8px_24px_rgba(0,0,0,0.12)]' : ''}`}>
         <div className="max-w-[1920px] mx-auto px-4 h-16 flex items-center justify-between gap-4">
 
           {/* Left Section: Hamburger, Logo, Search */}

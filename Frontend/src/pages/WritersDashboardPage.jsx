@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { getUser } from '../lib/auth'
-import { getWorks, getAssetUrl, getEstimatedEarnings, getPayoutMethod } from '../lib/api'
+import { getAuthor, getAssetUrl, getEstimatedEarnings, getPayoutMethod } from '../lib/api'
 import { useConfig } from '../contexts/ConfigContext'
 
 const formatDate = (dateString) => {
@@ -36,15 +36,20 @@ export default function WritersDashboardPage() {
 
   const authorId = user?.authorId
   const fetchMyWorks = useCallback(async () => {
+    if (!authorId) {
+      setWorks([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     try {
-      const data = await getWorks()
-      const mine = authorId ? data.filter((w) => w.authorId === authorId) : []
+      const data = await getAuthor(authorId, user?.id)
+      const mine = Array.isArray(data.works) ? data.works : []
       setWorks(mine)
     } finally {
       setLoading(false)
     }
-  }, [authorId])
+  }, [authorId, user?.id])
 
   useEffect(() => {
     fetchMyWorks()
@@ -251,7 +256,7 @@ export default function WritersDashboardPage() {
             <p className="text-stone-500 text-sm py-8">Loading…</p>
           ) : works.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-stone-500 text-sm mb-4">You haven’t published any stories yet.</p>
+              <p className="text-stone-500 text-sm mb-4">You haven’t written any stories yet.</p>
               <Link
                 to="/writers-dashboard/new"
                 className="inline-block px-4 py-2 rounded-lg bg-stone-900 text-white text-sm font-medium hover:bg-stone-800"
@@ -270,6 +275,11 @@ export default function WritersDashboardPage() {
                         {work.status === 'draft' && (
                           <span className="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800">
                             Draft
+                          </span>
+                        )}
+                        {work.status === 'pending' && (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                            Pending review
                           </span>
                         )}
                       </h2>

@@ -2,6 +2,8 @@ import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getUser } from '../lib/auth'
 import { createWork, uploadImage, getAssetUrl } from '../lib/api'
+import { CONTENT_LANGUAGES } from '../lib/languages'
+import { GENRES } from '../lib/genres'
 import ImageCropModal from '../components/ImageCropModal'
 import RichTextEditor from '../components/RichTextEditor'
 
@@ -22,6 +24,8 @@ export default function WriterNewStoryPage() {
 
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('short_story')
+  const [genre, setGenre] = useState('General')
+  const [language, setLanguage] = useState('en')
   const [excerpt, setExcerpt] = useState('')
   const [body, setBody] = useState('')
   const [thumbnailUrl, setThumbnailUrl] = useState('')
@@ -99,12 +103,13 @@ export default function WriterNewStoryPage() {
         title: title.trim(),
         authorId,
         category,
-        genre: 'General',
+        genre: genre.trim() || 'General',
         excerpt: excerpt.trim(),
         body,
         thumbnailUrl: thumbnailUrl.trim(),
         topics,
         status,
+        language,
       })
       navigate(`/writers-dashboard/story/${work.id}`)
     } catch (err) {
@@ -157,6 +162,34 @@ export default function WriterNewStoryPage() {
               <option key={c.value} value={c.value}>{c.label}</option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1.5">Genre</label>
+          <select
+            value={genre}
+            onChange={(e) => setGenre(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-lg border border-stone-200 bg-white"
+          >
+            {GENRES.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1.5">Content language</label>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-lg border border-stone-200 bg-white"
+            title="Language your story is written in (Twi, Ga, Ewe, or English)"
+          >
+            {CONTENT_LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>{l.name}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-stone-400">
+            Publish in your preferred language. Readers can translate to other languages.
+          </p>
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">Thumbnail (optional)</label>

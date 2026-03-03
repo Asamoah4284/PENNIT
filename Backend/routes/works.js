@@ -7,10 +7,16 @@ import {
   getWorkClapStatus,
   toggleSaveWork,
   listSavedWorks,
+  toggleWorkCommentLike,
 } from '../controllers/workSocialController.js'
 import { trackWorkView, trackWorkRead } from '../controllers/workReadController.js'
+import { publishPost } from '../controllers/workPublishController.js'
+import { createWorkTip } from '../controllers/tipController.js'
+import { translateWorkContent, stripHtml, APP_CODE_TO_FIELD } from '../services/translate.js'
 
 const router = Router()
+
+const TRANSLATABLE_LANGUAGES = ['en', 'tw', 'ga', 'ee']
 
 /** Format work for JSON: safe when authorId is populated object or raw ObjectId. */
 function formatWork(w) {
@@ -28,21 +34,6 @@ function formatWork(w) {
     createdAt: w.createdAt?.toISOString?.() ?? w.createdAt,
   }
 }
-
-/** GET /api/works - List all works (public: published only) */
-router.get('/', async (req, res) => {
-  try {
-    const works = await Work.find({ status: 'published' })
-      .populate('authorId', 'penName avatarUrl')
-      .sort({ createdAt: -1 })
-      .lean()
-    const formatted = works.map(formatWork)
-    res.json(formatted)
-  } catch (err) {
-    console.error('Error fetching works:', err)
-    res.status(500).json({ error: 'Failed to fetch works' })
-  }
-})
 
 /** Normalise topics array from body (strings only, trimmed, max 5). */
 function normalizeTopics(raw) {
@@ -66,53 +57,27 @@ function normalizeTopics(raw) {
   return unique.slice(0, 5)
 }
 
-/** POST /api/works - Create a new work */
-router.post('/', async (req, res) => {
+/** GET /api/works - List all works (public: published only) */
+router.get('/', async (req, res) => {
   try {
-    const { title, authorId, category, genre, excerpt, body, thumbnailUrl, status } = req.body
-    if (!title || !title.trim()) {
-      return res.status(400).json({ error: 'Title is required' })
-    }
-    if (!authorId) {
-      return res.status(400).json({ error: 'Author is required' })
-    }
-    if (!category || !['short_story', 'poem', 'novel'].includes(category)) {
-      return res.status(400).json({ error: 'Valid category is required (short_story, poem, novel)' })
-    }
-    const isDraft = status === 'draft'
-    if (!isDraft && (!body || typeof body !== 'string')) {
-      return res.status(400).json({ error: 'Story body is required to publish' })
-    }
-    const topics = normalizeTopics(req.body.topics)
-
-    const work = await Work.create({
-      title: title.trim(),
-      authorId,
-      category,
-      genre: (genre || 'General').trim(),
-      excerpt: (excerpt || '').trim(),
-      body: typeof body === 'string' ? body.trim() : '',
-      readCount: 0,
-      thumbnailUrl: (thumbnailUrl || '').trim(),
-      status: status === 'draft' ? 'draft' : 'pending',
-      topics,
-    })
-    const populated = await Work.findById(work._id)
+    const works = await Work.find({ status: 'published' })
       .populate('authorId', 'penName avatarUrl')
+      .sort({ createdAt: -1 })
       .lean()
-    const w = populated || work.toObject?.() || work
-    res.status(201).json({
-      ...w,
-      id: w._id.toString(),
-      authorId: w.authorId?._id?.toString() ?? w.authorId?.toString(),
-      author: w.authorId ? { id: w.authorId._id.toString(), penName: w.authorId.penName, avatarUrl: w.authorId.avatarUrl } : null,
-      createdAt: w.createdAt?.toISOString?.(),
-    })
+    const formatted = works.map(formatWork)
+    res.json(formatted)
   } catch (err) {
-    console.error('Error creating work:', err)
-    res.status(500).json({ error: 'Failed to create story' })
+    console.error('Error fetching works:', err)
+    res.status(500).json({ error: 'Failed to fetch works' })
   }
 })
+
+/**
+ * POST /api/works
+ * Delegates to publishPost controller which handles validation, translation,
+ * and persistence in one clean flow.
+ */
+router.post('/', publishPost)
 
 /** GET /api/works/:id - Get single work by ID */
 router.get('/:id', async (req, res) => {
@@ -130,6 +95,77 @@ router.get('/:id', async (req, res) => {
   }
 })
 
+/**
+ * POST /api/works/:id/translate
+ *
+ * Returns translated title, excerpt, and body for a work.
+ * Strategy (fastest first):
+ *   1. Return from pre-computed Work.translations (stored at publish time) — zero AI cost.
+ *   2. Fall back to a live OpenAI call if translations are missing (e.g. older works).
+ */
+router.post('/:id/translate', async (req, res) => {
+  try {
+    const work = await Work.findById(req.params.id).lean()
+    if (!work) return res.status(404).json({ error: 'Work not found' })
+
+    const targetCode = (req.body.targetLanguage || req.body.target || '').toLowerCase()
+    if (!TRANSLATABLE_LANGUAGES.includes(targetCode)) {
+      return res.status(400).json({ error: 'Invalid target language. Use one of: en, tw, ga, ee' })
+    }
+
+    const sourceCode = (work.language || 'en').toLowerCase()
+
+    // Same language – return original text immediately.
+    if (sourceCode === targetCode) {
+      return res.json({
+        title:    work.title,
+        excerpt:  work.excerpt || '',
+        body:     stripHtml(work.body || ''),
+        language: targetCode,
+        cached:   true,
+      })
+    }
+
+    // ── Try cached translations first ────────────────────────────────────────
+    const targetField = APP_CODE_TO_FIELD[targetCode]
+    const cached = work.translations
+
+    const cachedTitle   = cached?.title?.[targetField]
+    const cachedExcerpt = cached?.excerpt?.[targetField]
+    const cachedBody    = cached?.body?.[targetField]
+
+    if (cachedTitle || cachedBody) {
+      return res.json({
+        title:    cachedTitle   || work.title,
+        excerpt:  cachedExcerpt || work.excerpt || '',
+        body:     cachedBody    || stripHtml(work.body || ''),
+        language: targetCode,
+        cached:   true,
+      })
+    }
+
+    // ── No cache — call OpenAI and back-fill the document ────────────────────
+    const translated = await translateWorkContent(
+      { title: work.title, excerpt: work.excerpt, body: work.body },
+      sourceCode
+    )
+
+    // Persist the fresh translations so subsequent requests are free.
+    await Work.findByIdAndUpdate(work._id, { $set: { translations: translated } })
+
+    return res.json({
+      title:    translated.title?.[targetField]   || work.title,
+      excerpt:  translated.excerpt?.[targetField] || work.excerpt || '',
+      body:     translated.body?.[targetField]    || stripHtml(work.body || ''),
+      language: targetCode,
+      cached:   false,
+    })
+  } catch (err) {
+    console.error('[translate]', err.message)
+    res.status(500).json({ error: err?.message || 'Translation failed.' })
+  }
+})
+
 /** PUT /api/works/:id - Update a work */
 router.put('/:id', async (req, res) => {
   try {
@@ -137,8 +173,9 @@ router.put('/:id', async (req, res) => {
     if (!work) {
       return res.status(404).json({ error: 'Work not found' })
     }
-    const { title, category, genre, excerpt, body, thumbnailUrl, status } = req.body
+    const { title, category, genre, excerpt, body, thumbnailUrl, status, language } = req.body
     if (title !== undefined) work.title = title.trim()
+    if (language !== undefined && ['en', 'tw', 'ga', 'ee'].includes(language)) work.language = language
     if (category !== undefined && ['short_story', 'poem', 'novel'].includes(category)) work.category = category
     if (genre !== undefined) work.genre = (genre || 'General').trim()
     if (excerpt !== undefined) work.excerpt = (excerpt || '').trim()
@@ -148,6 +185,13 @@ router.put('/:id', async (req, res) => {
       work.topics = normalizeTopics(req.body.topics)
     }
     if (status !== undefined && ['draft', 'pending', 'published'].includes(status)) work.status = status
+
+    // If content changed, clear stale translations so they'll be regenerated on next read.
+    const contentChanged = title !== undefined || body !== undefined || excerpt !== undefined || language !== undefined
+    if (contentChanged) {
+      work.translations = {}
+    }
+
     await work.save()
     const populated = await Work.findById(work._id)
       .populate('authorId', 'penName avatarUrl')
@@ -186,11 +230,17 @@ router.post('/:id/comments', createWorkComment)
 /** GET /api/works/:id/comments - List comments for a work */
 router.get('/:id/comments', listWorkComments)
 
+/** POST /api/works/:id/comments/:commentId/like - Toggle like on a comment */
+router.post('/:id/comments/:commentId/like', toggleWorkCommentLike)
+
 /** POST /api/works/:id/clap - Toggle clap for a work */
 router.post('/:id/clap', toggleWorkClap)
 
 /** GET /api/works/:id/clap - Get clap status for current user */
 router.get('/:id/clap', getWorkClapStatus)
+
+/** POST /api/works/:id/tip - Tip the work's author (Reader plan subscribers only, amount 0.01–9.99 GHC) */
+router.post('/:id/tip', createWorkTip)
 
 /** POST /api/works/:id/save - Toggle save/unsave work */
 router.post('/:id/save', toggleSaveWork)

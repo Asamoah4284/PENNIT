@@ -16,6 +16,7 @@ import writerStatsRouter from './routes/writerStats.js'
 import readerStatsRouter from './routes/readerStats.js'
 import usersRouter from './routes/users.js'
 import adminRouter from './routes/admin.js'
+import playlistsRouter from './routes/playlists.js'
 import { clientIpMiddleware } from './middleware/clientIp.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -68,6 +69,7 @@ app.use('/api/writers', writerStatsRouter)
 app.use('/api/readers', readerStatsRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/victor-access-control', adminRouter)
+app.use('/api/playlists', playlistsRouter)
 
 /** Root route */
 app.get('/', (req, res) => {

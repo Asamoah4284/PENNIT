@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { getWork, updateWork, deleteWork, uploadImage, getAssetUrl } from '../lib/api'
+import { CONTENT_LANGUAGES, getLanguageName } from '../lib/languages'
+import { GENRES } from '../lib/genres'
 import ImageCropModal from '../components/ImageCropModal'
 import RichTextEditor from '../components/RichTextEditor'
 import DOMPurify from 'dompurify'
@@ -42,6 +44,8 @@ export default function WriterStoryPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('short_story')
+  const [genre, setGenre] = useState('General')
+  const [language, setLanguage] = useState('en')
   const [excerpt, setExcerpt] = useState('')
   const [body, setBody] = useState('')
   const [thumbnailUrl, setThumbnailUrl] = useState('')
@@ -61,6 +65,8 @@ export default function WriterStoryPage() {
         setWork(data)
         setTitle(data.title || '')
         setCategory(data.category || 'short_story')
+        setGenre(data.genre || 'General')
+        setLanguage(data.language || 'en')
         setExcerpt(data.excerpt || '')
         setBody(data.body || '')
         setThumbnailUrl(data.thumbnailUrl || '')
@@ -72,6 +78,8 @@ export default function WriterStoryPage() {
   const startEdit = () => {
     setTitle(work?.title || '')
     setCategory(work?.category || 'short_story')
+    setGenre(work?.genre || 'General')
+    setLanguage(work?.language || 'en')
     setExcerpt(work?.excerpt || '')
     setBody(work?.body || '')
     setThumbnailUrl(work?.thumbnailUrl || '')
@@ -110,10 +118,11 @@ export default function WriterStoryPage() {
       const payload = {
         title: title.trim(),
         category,
-        genre: work.genre || 'General',
+        genre: genre.trim() || 'General',
         excerpt: excerpt.trim(),
         body,
         thumbnailUrl: thumbnailUrl.trim(),
+        language,
       }
       if (publish) payload.status = 'published'
       const updated = await updateWork(work.id, payload)
@@ -211,6 +220,10 @@ export default function WriterStoryPage() {
             <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-stone-500">
               <span>Posted {formatDateTime(work.createdAt)}</span>
               <span>{formatReads(work.readCount)} reads</span>
+              {work.genre && <span>Genre: {work.genre}</span>}
+              {work.language && (
+                <span>Language: {getLanguageName(work.language)}</span>
+              )}
             </div>
           </header>
 
@@ -294,6 +307,30 @@ export default function WriterStoryPage() {
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">Genre</label>
+              <select
+                value={genre}
+                onChange={(e) => setGenre(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-stone-200 bg-white"
+              >
+                {GENRES.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">Content language</label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-stone-200 bg-white"
+              >
+                {CONTENT_LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>{l.name}</option>
                 ))}
               </select>
             </div>

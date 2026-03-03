@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
 import Author from '../models/Author.js'
 import AuthorFollow from '../models/AuthorFollow.js'
+import { getSubscriptionStatus } from '../services/subscriptionStatusService.js'
 
 const router = Router()
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -34,6 +35,21 @@ router.get('/me', async (req, res) => {
       authorId: user.authorId?.toString() ?? null,
       avatarUrl: user.avatarUrl || '',
       bio: user.bio || '',
+    }
+
+    if (process.env.MONETIZATION_ENABLED === 'true') {
+      const subStatus = await getSubscriptionStatus(user._id)
+      profile.isSubscriber = subStatus.isSubscriber
+      profile.trialEndsAt = subStatus.trialEndsAt
+      profile.isInTrialPeriod = subStatus.isInTrialPeriod
+      profile.canTip = subStatus.canTip
+      profile.planType = subStatus.planType
+    } else {
+      profile.isSubscriber = false
+      profile.trialEndsAt = null
+      profile.isInTrialPeriod = false
+      profile.canTip = false
+      profile.planType = null
     }
 
     if (user.role === 'writer' && user.authorId) {

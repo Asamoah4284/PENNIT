@@ -165,8 +165,20 @@ export default function ProfilePage() {
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-bold text-stone-900">{displayName}</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg font-bold text-stone-900">{displayName}</h2>
+                {profile?.isSubscriber && (
+                  <span className="inline-flex items-center text-amber-500" title="Subscriber" aria-label="Subscriber">
+                    <span className="text-xl">⭐</span>
+                  </span>
+                )}
+              </div>
               <p className="text-stone-500 text-sm mt-1">{user?.email}</p>
+              {profile?.isInTrialPeriod && profile?.trialEndsAt && (
+                <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  Free trial — ends {new Date(profile.trialEndsAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              )}
               <p className="text-stone-600 mt-4 whitespace-pre-wrap">
                 {displayBio || 'Add a bio to tell readers about yourself.'}
               </p>

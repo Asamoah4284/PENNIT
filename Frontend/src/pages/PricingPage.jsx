@@ -69,10 +69,14 @@ export default function PricingPage() {
     )
   }
 
+  const readerPlan = plans.find((p) => p.planType === 'reader') || plans[0]
+  const writerPlan = plans.find((p) => p.planType === 'writer') || plans[1]
+
   return (
-    <div className="max-w-2xl mx-auto px-6 py-12">
+    <div className="max-w-3xl mx-auto px-6 py-12">
       <h1 className="text-2xl font-bold text-stone-900 mb-2">Subscribe</h1>
-      <p className="text-stone-600 mb-8">Monthly subscription in Ghana Cedis (GHC). Full access to all content.</p>
+      <p className="text-stone-600 mb-2">Monthly plans in Ghana Cedis (GHC). New accounts get a 14-day free trial of subscriber features.</p>
+      <p className="text-stone-500 text-sm mb-8">After the trial, choose a plan to keep full access, save pieces, use playlists, and (Reader only) tip writers.</p>
 
       {error && (
         <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-100 text-red-800 text-sm">
@@ -87,26 +91,51 @@ export default function PricingPage() {
       )}
 
       <div className="grid gap-6 sm:grid-cols-2">
-        {plans.map((plan) => (
-          <div
-            key={plan.id}
-            className="p-6 rounded-2xl border border-stone-200 bg-white shadow-sm"
-          >
-            <h2 className="text-lg font-semibold text-stone-900">{plan.name}</h2>
-            <p className="mt-2 text-2xl font-bold text-stone-900">GH₵ {Number(plan.amountGhc).toFixed(2)}<span className="text-base font-normal text-stone-500">/month</span></p>
-            <p className="mt-2 text-sm text-stone-500">Full access to all stories, poems, and novels.</p>
+        {readerPlan && (
+          <div className="p-6 rounded-2xl border-2 border-stone-900 bg-white shadow-sm">
+            <h2 className="text-lg font-semibold text-stone-900">Reader</h2>
+            <p className="mt-2 text-2xl font-bold text-stone-900">GH₵ {Number(readerPlan.amountGhc).toFixed(2)}<span className="text-base font-normal text-stone-500">/month</span></p>
+            <ul className="mt-3 text-sm text-stone-600 space-y-1">
+              <li>Full access to all stories & featured pieces</li>
+              <li>Save pieces & create playlists</li>
+              <li>Tip writers (GH₵0.01–9.99)</li>
+              <li>Subscriber badge on profile & comments</li>
+            </ul>
             {!subscription && (
               <button
                 type="button"
                 disabled={submitting}
-                onClick={() => handleSubscribe(plan.id)}
+                onClick={() => handleSubscribe(readerPlan.id)}
                 className="mt-6 w-full py-3 rounded-lg bg-stone-900 text-white font-medium hover:bg-stone-800 disabled:opacity-50"
               >
-                {submitting ? 'Redirecting…' : 'Subscribe'}
+                {submitting ? 'Redirecting…' : 'Subscribe as Reader'}
               </button>
             )}
           </div>
-        ))}
+        )}
+        {writerPlan && (
+          <div className="p-6 rounded-2xl border border-stone-200 bg-white shadow-sm">
+            <h2 className="text-lg font-semibold text-stone-900">Writer</h2>
+            <p className="mt-2 text-2xl font-bold text-stone-900">GH₵ {Number(writerPlan.amountGhc).toFixed(2)}<span className="text-base font-normal text-stone-500">/month</span></p>
+            <p className="mt-2 text-xs text-stone-500 font-medium">For writers who want premium reader features</p>
+            <ul className="mt-3 text-sm text-stone-600 space-y-1">
+              <li>Read featured & Editor's Pick pieces</li>
+              <li>Save pieces & create playlists</li>
+              <li>Subscriber badge</li>
+              <li>No tipping (Reader plan only)</li>
+            </ul>
+            {!subscription && (
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => handleSubscribe(writerPlan.id)}
+                className="mt-6 w-full py-3 rounded-lg border-2 border-stone-900 text-stone-900 font-medium hover:bg-stone-50 disabled:opacity-50"
+              >
+                {submitting ? 'Redirecting…' : 'Subscribe as Writer'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <p className="mt-8 text-sm text-stone-500">

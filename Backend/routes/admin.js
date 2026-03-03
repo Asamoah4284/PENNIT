@@ -164,7 +164,7 @@ router.get('/works', isAdmin, async (req, res) => {
 /** PATCH /api/victor-access-control/works/:id - Admin edit a work */
 router.patch('/works/:id', isAdmin, async (req, res) => {
     try {
-        const { title, excerpt, body, category, genre, status } = req.body
+        const { title, excerpt, body, category, genre, status, featured, editorsPick } = req.body
         const update = {}
         if (title !== undefined) update.title = title.trim()
         if (excerpt !== undefined) update.excerpt = excerpt.trim()
@@ -172,6 +172,8 @@ router.patch('/works/:id', isAdmin, async (req, res) => {
         if (genre !== undefined) update.genre = genre.trim()
         if (category !== undefined && ['short_story', 'poem', 'novel'].includes(category)) update.category = category
         if (status !== undefined && ['draft', 'pending', 'published'].includes(status)) update.status = status
+        if (featured !== undefined) update.featured = Boolean(featured)
+        if (editorsPick !== undefined) update.editorsPick = Boolean(editorsPick)
 
         const work = await Work.findByIdAndUpdate(req.params.id, update, { new: true })
         if (!work) return res.status(404).json({ error: 'Work not found' })
@@ -184,9 +186,13 @@ router.patch('/works/:id', isAdmin, async (req, res) => {
 /** PATCH /api/victor-access-control/works/:id/approve - Approve a pending work */
 router.patch('/works/:id/approve', isAdmin, async (req, res) => {
     try {
+        const earlyAccessHours = parseInt(process.env.EARLY_ACCESS_HOURS || '48', 10)
         const work = await Work.findByIdAndUpdate(
             req.params.id,
-            { status: 'published' },
+            {
+                status: 'published',
+                earlyAccessUntil: new Date(Date.now() + earlyAccessHours * 60 * 60 * 1000),
+            },
             { new: true }
         )
         if (!work) return res.status(404).json({ error: 'Work not found' })

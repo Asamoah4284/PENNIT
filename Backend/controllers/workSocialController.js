@@ -2,9 +2,11 @@ import mongoose from 'mongoose'
 import Work from '../models/Work.js'
 import Author from '../models/Author.js'
 import WorkComment from '../models/WorkComment.js'
+import WorkCommentLike from '../models/WorkCommentLike.js'
 import WorkClap from '../models/WorkClap.js'
 import SavedWork from '../models/SavedWork.js'
 import AuthorFollow from '../models/AuthorFollow.js'
+import { getSubscriberFlagsForUsers, getSubscriptionStatus } from '../services/subscriptionStatusService.js'
 
 function resolveUserId(req) {
   const raw = req.user?._id || req.user?.id || req.body?.userId || req.headers['x-user-id']
@@ -79,21 +81,97 @@ export async function listWorkComments(req, res) {
       .populate('userId', 'name penName')
       .lean()
 
-    const formatted = comments.map((c) => ({
-      id: c._id.toString(),
-      workId: c.workId?.toString?.() ?? c.workId,
-      userId: c.userId?._id?.toString?.() ?? c.userId?._id ?? c.userId,
-      userName: c.userId?.penName || c.userId?.name || null,
-      authorId: c.authorId?.toString?.() ?? c.authorId,
-      content: c.content,
-      parentId: c.parentId?.toString?.() ?? null,
-      createdAt: c.createdAt?.toISOString?.() ?? c.createdAt,
-    }))
+    const userId = resolveUserId(req)
+
+    const commentIds = comments.map((c) => c._id)
+
+    // Aggregate like counts per comment
+    const likeDocs = commentIds.length
+      ? await WorkCommentLike.aggregate([
+          { $match: { commentId: { $in: commentIds } } },
+          { $group: { _id: '$commentId', count: { $sum: 1 } } },
+        ])
+      : []
+
+    const likeCountMap = new Map(likeDocs.map((d) => [String(d._id), d.count]))
+
+    // Which comments this user has liked
+    let likedSet = new Set()
+    if (userId && commentIds.length) {
+      const likedDocs = await WorkCommentLike.find({ commentId: { $in: commentIds }, userId })
+        .select('commentId')
+        .lean()
+      likedSet = new Set(likedDocs.map((d) => String(d.commentId)))
+    }
+
+    const commenterIds = comments.map((c) => c.userId?._id?.toString?.() ?? c.userId?.toString?.() ?? '').filter(Boolean)
+    const subscriberFlags = process.env.MONETIZATION_ENABLED === 'true'
+      ? await getSubscriberFlagsForUsers(commenterIds)
+      : new Map()
+
+    const formatted = comments.map((c) => {
+      const id = c._id.toString()
+      const uid = c.userId?._id?.toString?.() ?? c.userId?.toString?.() ?? ''
+      const likeCount = likeCountMap.get(id) || 0
+      const liked = likedSet.has(id)
+      return {
+        id,
+        workId: c.workId?.toString?.() ?? c.workId,
+        userId: uid || (c.userId?._id?.toString?.() ?? c.userId),
+        userName: c.userId?.penName || c.userId?.name || null,
+        authorId: c.authorId?.toString?.() ?? c.authorId,
+        content: c.content,
+        parentId: c.parentId?.toString?.() ?? null,
+        createdAt: c.createdAt?.toISOString?.() ?? c.createdAt,
+        likeCount,
+        liked,
+        commenterIsSubscriber: subscriberFlags.get(uid) ?? false,
+      }
+    })
 
     res.json(formatted)
   } catch (err) {
     console.error('Error listing work comments:', err)
     res.status(500).json({ error: 'Failed to fetch comments' })
+  }
+}
+
+/** Toggle like on a comment for current user */
+export async function toggleWorkCommentLike(req, res) {
+  try {
+    const userId = resolveUserId(req)
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required to like comments' })
+    }
+
+    const workId = req.params.id
+    const commentId = req.params.commentId
+
+    if (!mongoose.Types.ObjectId.isValid(workId) || !mongoose.Types.ObjectId.isValid(commentId)) {
+      return res.status(400).json({ error: 'Invalid work or comment ID' })
+    }
+
+    const comment = await WorkComment.findOne({ _id: commentId, workId }).select('_id')
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' })
+    }
+
+    const existing = await WorkCommentLike.findOne({ commentId: comment._id, userId })
+    if (existing) {
+      await existing.deleteOne()
+    } else {
+      await WorkCommentLike.create({ commentId: comment._id, userId })
+    }
+
+    const likeCount = await WorkCommentLike.countDocuments({ commentId: comment._id })
+    res.json({
+      commentId: comment._id.toString(),
+      liked: !existing,
+      likeCount,
+    })
+  } catch (err) {
+    console.error('Error toggling comment like:', err)
+    res.status(500).json({ error: 'Failed to like comment' })
   }
 }
 
@@ -190,12 +268,19 @@ export async function getWorkClapStatus(req, res) {
   }
 }
 
-/** Toggle save/unsave work for current user */
+/** Toggle save/unsave work for current user. Requires subscriber access (trial or paid). */
 export async function toggleSaveWork(req, res) {
   try {
     const userId = resolveUserId(req)
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required to save works' })
+    }
+
+    if (process.env.MONETIZATION_ENABLED === 'true') {
+      const status = await getSubscriptionStatus(userId)
+      if (!status.isSubscriber) {
+        return res.status(403).json({ error: 'Subscriber access (free trial or subscription) is required to save pieces.' })
+      }
     }
 
     const workId = req.params.id

@@ -121,8 +121,8 @@ export async function getMyFollowing(userId) {
   return handleResponse(res)
 }
 
-/** Create a new work (story) - for writers. status: 'draft' | 'published' (default 'published') */
-export async function createWork({ title, authorId, category, genre, excerpt, body, thumbnailUrl, topics, status = 'published' }) {
+/** Create a new work (story) - for writers. status: 'draft' | 'published' (default 'published'). language: en, tw, ga, ee */
+export async function createWork({ title, authorId, category, genre, excerpt, body, thumbnailUrl, topics, status = 'published', language = 'en' }) {
   const res = await fetch(`${API_BASE}/api/works`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -136,19 +136,31 @@ export async function createWork({ title, authorId, category, genre, excerpt, bo
       thumbnailUrl: thumbnailUrl || '',
       topics: topics && Array.isArray(topics) ? topics : topics,
       status: status === 'draft' ? 'draft' : 'published',
+      language: ['en', 'tw', 'ga', 'ee'].includes(language) ? language : 'en',
     }),
   })
   return handleResponse(res)
 }
 
-/** Update a work - for writers. status: 'draft' | 'published' to change visibility */
-export async function updateWork(id, { title, category, genre, excerpt, body, thumbnailUrl, status }) {
+/** Update a work - for writers. status: 'draft' | 'published' to change visibility. language: en, tw, ga, ee */
+export async function updateWork(id, { title, category, genre, excerpt, body, thumbnailUrl, status, language }) {
   const payload = { title, category, genre, excerpt, body, thumbnailUrl }
   if (status !== undefined) payload.status = status
+  if (language !== undefined && ['en', 'tw', 'ga', 'ee'].includes(language)) payload.language = language
   const res = await fetch(`${API_BASE}/api/works/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+  })
+  return handleResponse(res)
+}
+
+/** Translate a work's title, excerpt, and body to target language (en, tw, ga, ee). Returns { title, excerpt, body, language }. */
+export async function translateWork(workId, targetLanguage) {
+  const res = await fetch(`${API_BASE}/api/works/${workId}/translate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ targetLanguage }),
   })
   return handleResponse(res)
 }
@@ -174,9 +186,22 @@ export async function createWorkComment(workId, { content, userId, parentId }) {
   return handleResponse(res)
 }
 
-export async function getWorkComments(workId, { limit = 50, offset = 0 } = {}) {
+export async function getWorkComments(workId, { limit = 50, offset = 0 } = {}, userId) {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
-  const res = await fetch(`${API_BASE}/api/works/${workId}/comments?${params.toString()}`)
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/works/${workId}/comments?${params.toString()}`, { headers })
+  return handleResponse(res)
+}
+
+export async function toggleWorkCommentLike(workId, commentId, userId) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/works/${workId}/comments/${commentId}/like`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ userId }),
+  })
   return handleResponse(res)
 }
 
@@ -301,6 +326,18 @@ export async function cancelSubscription(userId) {
   return handleResponse(res)
 }
 
+/** POST /api/works/:id/tip — Tip the work's author (Reader plan only). amountGhc: 0.01–9.99 */
+export async function tipWork(workId, userId, amountGhc) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/works/${workId}/tip`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ amountGhc: Number(amountGhc) }),
+  })
+  return handleResponse(res)
+}
+
 /** GET /api/writers/me/stats - Writer stats: reads, claps, followers, daily/monthly trends, top works. */
 export async function getWriterStats(userId) {
   const headers = {}
@@ -341,6 +378,82 @@ export async function setPayoutMethod(userId, { type, bankCode, accountNumber, a
     method: 'PUT',
     headers,
     body: JSON.stringify({ type, bankCode, accountNumber, accountName, mobileMoneyNumber, mobileMoneyProvider }),
+  })
+  return handleResponse(res)
+}
+
+/** --- Playlist APIs (subscriber-only) --- */
+
+/** GET /api/playlists/me — list the current user's playlists. */
+export async function getMyPlaylists(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/playlists/me`, { headers })
+  return handleResponse(res)
+}
+
+/** GET /api/playlists/:id/works — fetch a playlist with its populated work documents. */
+export async function getPlaylistWorks(playlistId, userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/playlists/${playlistId}/works`, { headers })
+  return handleResponse(res)
+}
+
+/** POST /api/playlists — create a new playlist. Requires active subscription. */
+export async function createPlaylist(userId, { name, description = '', isPrivate = true }) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/playlists`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ name, description, isPrivate }),
+  })
+  return handleResponse(res)
+}
+
+/** PUT /api/playlists/:id — update a playlist's name/description/isPrivate. */
+export async function updatePlaylist(userId, playlistId, updates) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/playlists/${playlistId}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(updates),
+  })
+  return handleResponse(res)
+}
+
+/** DELETE /api/playlists/:id — delete a playlist. */
+export async function deletePlaylist(userId, playlistId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/playlists/${playlistId}`, {
+    method: 'DELETE',
+    headers,
+  })
+  return handleResponse(res)
+}
+
+/** POST /api/playlists/:id/works — add a work to a playlist. */
+export async function addWorkToPlaylist(userId, playlistId, workId) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/playlists/${playlistId}/works`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ workId }),
+  })
+  return handleResponse(res)
+}
+
+/** DELETE /api/playlists/:id/works/:workId — remove a work from a playlist. */
+export async function removeWorkFromPlaylist(userId, playlistId, workId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/playlists/${playlistId}/works/${workId}`, {
+    method: 'DELETE',
+    headers,
   })
   return handleResponse(res)
 }

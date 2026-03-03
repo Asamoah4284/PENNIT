@@ -4,6 +4,7 @@ import SubscriptionPlan from '../models/SubscriptionPlan.js'
 import Subscription from '../models/Subscription.js'
 import SubscriptionPayment from '../models/SubscriptionPayment.js'
 import * as paymentProvider from '../services/paymentProvider.js'
+import { getSubscriptionStatus } from '../services/subscriptionStatusService.js'
 
 const router = Router()
 
@@ -13,23 +14,22 @@ function resolveUserId(req) {
   return new mongoose.Types.ObjectId(String(raw))
 }
 
-/** GET /api/subscriptions/plans - List subscription plans (e.g. monthly GHC). */
+/** GET /api/subscriptions/plans - List subscription plans (Reader 9.99, Writer 4.99). */
 router.get('/plans', async (_req, res) => {
   try {
     let plans = await SubscriptionPlan.find().lean()
     if (plans.length === 0) {
-      await SubscriptionPlan.create({
-        name: 'Monthly',
-        amountGhc: 20,
-        billingInterval: 'monthly',
-        currency: 'GHC',
-      })
+      await SubscriptionPlan.insertMany([
+        { name: 'Reader', planType: 'reader', amountGhc: 9.99, billingInterval: 'monthly', currency: 'GHC' },
+        { name: 'Writer', planType: 'writer', amountGhc: 4.99, billingInterval: 'monthly', currency: 'GHC' },
+      ])
       plans = await SubscriptionPlan.find().lean()
     }
     res.json(
       plans.map((p) => ({
         id: p._id.toString(),
         name: p.name,
+        planType: p.planType || 'reader',
         amountGhc: p.amountGhc,
         billingInterval: p.billingInterval,
         currency: p.currency,
@@ -41,32 +41,28 @@ router.get('/plans', async (_req, res) => {
   }
 })
 
-/** GET /api/subscriptions/me - Current user's subscription (optional auth). */
+/** GET /api/subscriptions/me - Current user's subscription + trial + isSubscriber + canTip. */
 router.get('/me', async (req, res) => {
   try {
     const userId = resolveUserId(req)
     if (!userId) {
-      return res.json({ subscription: null })
+      return res.json({
+        subscription: null,
+        trialEndsAt: null,
+        isInTrialPeriod: false,
+        isSubscriber: false,
+        canTip: false,
+        planType: null,
+      })
     }
-    const sub = await Subscription.findOne({
-      userId,
-      status: 'active',
-      currentPeriodEnd: { $gt: new Date() },
-    })
-      .populate('planId', 'name amountGhc billingInterval currency')
-      .lean()
-    if (!sub) {
-      return res.json({ subscription: null })
-    }
+    const status = await getSubscriptionStatus(userId)
     res.json({
-      subscription: {
-        id: sub._id.toString(),
-        planId: sub.planId?._id?.toString(),
-        plan: sub.planId,
-        status: sub.status,
-        currentPeriodStart: sub.currentPeriodStart,
-        currentPeriodEnd: sub.currentPeriodEnd,
-      },
+      subscription: status.subscription,
+      trialEndsAt: status.trialEndsAt,
+      isInTrialPeriod: status.isInTrialPeriod,
+      isSubscriber: status.isSubscriber,
+      canTip: status.canTip,
+      planType: status.planType,
     })
   } catch (err) {
     console.error('Error fetching my subscription:', err)

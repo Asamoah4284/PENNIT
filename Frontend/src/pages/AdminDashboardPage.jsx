@@ -94,6 +94,8 @@ function EditPanel({ work, onClose, onSave }) {
         category: work.category ?? 'short_story',
         status: work.status ?? 'published',
         body: work.body ?? '',
+        featured: work.featured ?? false,
+        editorsPick: work.editorsPick ?? false,
     })
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState(null)
@@ -189,6 +191,43 @@ function EditPanel({ work, onClose, onSave }) {
                     <div>
                         <label className={labelCls}>Genre</label>
                         <input value={form.genre} onChange={handleChange('genre')} className={inputCls} placeholder="e.g. Romance, Sci-Fi, Mystery…" />
+                    </div>
+
+                    {/* Curation flags */}
+                    <div>
+                        <label className={labelCls}>Curation</label>
+                        <div className="flex flex-col gap-3 mt-1">
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={form.featured}
+                                    onClick={() => setForm(f => ({ ...f, featured: !f.featured }))}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 ${form.featured ? 'bg-[#6366F1]' : 'bg-[#D1D5DB]'}`}
+                                >
+                                    <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform ${form.featured ? 'translate-x-4' : 'translate-x-0'}`} />
+                                </button>
+                                <div>
+                                    <span className="text-[13px] font-semibold text-[#111]">Featured</span>
+                                    <p className="text-[11px] text-[#9CA3AF]">Highlighted on the home feed. Subscriber-only access.</p>
+                                </div>
+                            </label>
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={form.editorsPick}
+                                    onClick={() => setForm(f => ({ ...f, editorsPick: !f.editorsPick }))}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 ${form.editorsPick ? 'bg-amber-500' : 'bg-[#D1D5DB]'}`}
+                                >
+                                    <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform ${form.editorsPick ? 'translate-x-4' : 'translate-x-0'}`} />
+                                </button>
+                                <div>
+                                    <span className="text-[13px] font-semibold text-[#111]">Editor's Pick ⭐</span>
+                                    <p className="text-[11px] text-[#9CA3AF]">Curated editorial highlight. Permanently subscriber-only.</p>
+                                </div>
+                            </label>
+                        </div>
                     </div>
 
                     {/* Excerpt */}
