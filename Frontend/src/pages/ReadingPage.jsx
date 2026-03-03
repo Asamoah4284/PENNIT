@@ -5,6 +5,7 @@ import {
   getAssetUrl,
   trackWorkView,
   trackWorkRead,
+  trackWorkShare,
   getWorkClapStatus,
   toggleWorkClap,
   toggleSaveWork,
@@ -416,6 +417,10 @@ export default function ReadingPage() {
     } else {
       await navigator.clipboard.writeText(url)
     }
+    // Record share signal for the personalised feed (fire-and-forget)
+    if (id) {
+      trackWorkShare(id, user?.id).catch(() => {})
+    }
   }
 
   const handleSubmitComment = async (e) => {
@@ -517,7 +522,9 @@ export default function ReadingPage() {
       const scrollTop = document.documentElement.scrollTop || document.body.scrollTop
       const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight
       const progressPercentage = scrollHeight > 0 ? Math.min(100, Math.round((scrollTop / scrollHeight) * 100)) : 0
-      trackWorkRead(id, { progressPercentage, timeSpent }, user?.id).catch(() => {})
+      // Pass viewLanguage so the feed knows which language this user reads in
+      const lang = viewLanguage ?? work?.language ?? 'en'
+      trackWorkRead(id, { progressPercentage, timeSpent, language: lang }, user?.id).catch(() => {})
     }
 
     readIntervalRef.current = setInterval(sendRead, 15000)

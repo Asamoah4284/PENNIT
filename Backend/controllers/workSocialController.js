@@ -7,6 +7,7 @@ import WorkClap from '../models/WorkClap.js'
 import SavedWork from '../models/SavedWork.js'
 import AuthorFollow from '../models/AuthorFollow.js'
 import { getSubscriberFlagsForUsers, getSubscriptionStatus } from '../services/subscriptionStatusService.js'
+import { recordInteraction } from '../services/feedScoringService.js'
 
 function resolveUserId(req) {
   const raw = req.user?._id || req.user?.id || req.body?.userId || req.headers['x-user-id']
@@ -55,6 +56,12 @@ export async function createWorkComment(req, res) {
     })
 
     await Work.updateOne({ _id: work._id }, { $inc: { commentCount: 1 } }).exec()
+
+    // Record interaction signal for the feed algorithm (fire-and-forget)
+    const fullWork = await Work.findById(work._id).select('authorId category genre language').lean()
+    if (fullWork) {
+      recordInteraction(userId, fullWork, { commented: true }).catch(() => {})
+    }
 
     res.status(201).json(comment.toJSON())
   } catch (err) {
@@ -212,7 +219,12 @@ export async function toggleWorkClap(req, res) {
 
     await WorkClap.create({ workId, userId })
     await Work.updateOne({ _id: workId }, { $inc: { clapCount: 1 } }).exec()
-    const updated = await Work.findById(workId).select('clapCount')
+    const updated = await Work.findById(workId).select('clapCount authorId category genre language')
+
+    // Record liked=true signal for the feed algorithm (fire-and-forget)
+    if (updated) {
+      recordInteraction(userId, updated.toObject(), { liked: true }).catch(() => {})
+    }
 
     return res.status(201).json({
       workId,
@@ -366,6 +378,40 @@ export async function listSavedWorks(req, res) {
   } catch (err) {
     console.error('Error listing saved works:', err)
     res.status(500).json({ error: 'Failed to fetch saved works' })
+  }
+}
+
+/**
+ * POST /api/works/:id/share
+ * Records that a user shared a work externally.
+ * Increments work.shareCount and updates the feed interaction signal.
+ */
+export async function trackWorkShare(req, res) {
+  try {
+    const workId = req.params.id
+    if (!mongoose.Types.ObjectId.isValid(workId)) {
+      return res.status(400).json({ error: 'Invalid work ID' })
+    }
+
+    const work = await Work.findById(workId).select('shareCount authorId category genre language')
+    if (!work) {
+      return res.status(404).json({ error: 'Work not found' })
+    }
+
+    // Increment share counter on the work document
+    await Work.updateOne({ _id: workId }, { $inc: { shareCount: 1 } }).exec()
+
+    const userId = resolveUserId(req)
+    if (userId) {
+      // Record shared=true for the personalised feed (fire-and-forget)
+      recordInteraction(userId, work.toObject(), { shared: true }).catch(() => {})
+    }
+
+    const updated = await Work.findById(workId).select('shareCount').lean()
+    res.json({ workId, shareCount: updated?.shareCount ?? 1 })
+  } catch (err) {
+    console.error('Error tracking work share:', err)
+    res.status(500).json({ error: 'Failed to track share' })
   }
 }
 

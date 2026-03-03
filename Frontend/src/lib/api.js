@@ -279,15 +279,60 @@ export async function trackWorkView(workId, userId) {
   return handleResponse(res)
 }
 
-/** Track work read (progress/time). Call on leave or interval; counts as read when progress >= 60% and time >= 30s, 24h dedup. */
-export async function trackWorkRead(workId, { progressPercentage, timeSpent }, userId) {
+/**
+ * Track work read (progress/time).
+ * Counts as read when progress >= 60% and timeSpent >= 30s, with 24h dedup.
+ * Pass `language` to record which language the user was reading in (used for feed personalisation).
+ */
+export async function trackWorkRead(workId, { progressPercentage, timeSpent, language }, userId) {
   const headers = { 'Content-Type': 'application/json' }
   if (userId) headers['x-user-id'] = userId
   const res = await fetch(`${API_BASE}/api/works/${workId}/read`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ progressPercentage, timeSpent }),
+    body: JSON.stringify({ progressPercentage, timeSpent, ...(language ? { language } : {}) }),
   })
+  return handleResponse(res)
+}
+
+/**
+ * Record that a user shared a work externally.
+ * Increments the work's shareCount and updates feed interaction signals.
+ */
+export async function trackWorkShare(workId, userId) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/works/${workId}/share`, {
+    method: 'POST',
+    headers,
+  })
+  return handleResponse(res)
+}
+
+/**
+ * GET /api/feed — personalised feed for the current user.
+ * Falls back to popularity + recency ranking for anonymous users.
+ *
+ * @param {string|null} userId   - optional; enables personalisation
+ * @param {{ limit?: number, page?: number }} opts
+ * @returns {{ works: object[], pagination: object, meta: object }}
+ */
+export async function getFeed(userId, { limit = 20, page = 1 } = {}) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const params = new URLSearchParams({ limit: String(limit), page: String(page) })
+  const res = await fetch(`${API_BASE}/api/feed?${params.toString()}`, { headers })
+  return handleResponse(res)
+}
+
+/**
+ * GET /api/feed/preferences — returns the current user's preference profile.
+ * Requires userId.
+ */
+export async function getMyFeedPreferences(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/feed/preferences`, { headers })
   return handleResponse(res)
 }
 

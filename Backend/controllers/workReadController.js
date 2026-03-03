@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import Work from '../models/Work.js'
 import WorkRead from '../models/WorkRead.js'
+import { recordInteraction } from '../services/feedScoringService.js'
 
 const READ_PROGRESS_THRESHOLD = 60
 const READ_TIME_SECONDS_THRESHOLD = 30
@@ -93,7 +94,7 @@ export async function trackWorkRead(req, res) {
       return res.status(400).json({ error: 'Invalid work ID' })
     }
 
-    const { progressPercentage, timeSpent } = req.body ?? {}
+    const { progressPercentage, timeSpent, language: viewLanguage } = req.body ?? {}
     const progress = Number(progressPercentage)
     const time = Number(timeSpent)
 
@@ -183,6 +184,14 @@ export async function trackWorkRead(req, res) {
 
     work.readCount += 1
     await work.save()
+
+    // Record readTime + language signal for the personalised feed (fire-and-forget).
+    // Uses the language the user actually viewed (may differ from work.language if translated).
+    if (userId) {
+      const signals = { readTime: time }
+      if (viewLanguage) signals.language = viewLanguage
+      recordInteraction(userId, work.toObject(), signals).catch(() => {})
+    }
 
     return res.status(201).json({
       workId: work._id.toString(),

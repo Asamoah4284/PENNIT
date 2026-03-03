@@ -42,6 +42,7 @@ const workSchema = new mongoose.Schema(
     clapCount:   { type: Number, default: 0 },
     commentCount:{ type: Number, default: 0 },
     saveCount:   { type: Number, default: 0 },
+    shareCount:  { type: Number, default: 0 },
     topics:      { type: [String], default: [] },
 
     /** Language the writer authored the content in. */

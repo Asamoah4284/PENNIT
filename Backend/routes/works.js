@@ -8,6 +8,7 @@ import {
   toggleSaveWork,
   listSavedWorks,
   toggleWorkCommentLike,
+  trackWorkShare,
 } from '../controllers/workSocialController.js'
 import { trackWorkView, trackWorkRead } from '../controllers/workReadController.js'
 import { publishPost } from '../controllers/workPublishController.js'
@@ -241,6 +242,9 @@ router.get('/:id/clap', getWorkClapStatus)
 
 /** POST /api/works/:id/tip - Tip the work's author (Reader plan subscribers only, amount 0.01–9.99 GHC) */
 router.post('/:id/tip', createWorkTip)
+
+/** POST /api/works/:id/share - Record an external share (increments shareCount + feed signal) */
+router.post('/:id/share', trackWorkShare)
 
 /** POST /api/works/:id/save - Toggle save/unsave work */
 router.post('/:id/save', toggleSaveWork)
