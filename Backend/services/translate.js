@@ -1,18 +1,20 @@
-import OpenAI from 'openai'
-
 /**
- * Map app-level language codes (stored in Work.language) to human-readable names
- * used in the OpenAI system prompt.
+ * Translation service using Google Cloud Translation API (v2 Basic).
+ *
+ * App language codes: en (English), tw (Twi), ga (Ga), ee (Ewe).
+ * These are mapped to Google's language codes for API requests.
  */
-const LANG_NAMES = {
-  en: 'English',
-  tw: 'Twi (Akan)',
-  ga: 'Ga',
-  ee: 'Ewe',
+
+/** App code (Work.language) → Google Cloud Translation API language code */
+const APP_CODE_TO_GOOGLE = {
+  en: 'en',
+  tw: 'ak',   // Akan (Twi is a dialect of Akan)
+  ga: 'gaa',  // Ga (Ghana)
+  ee: 'ee',   // Ewe
 }
 
 /**
- * Map app language codes (en, tw, ga, ee) to the keys used in the translations
+ * Map app-level language codes to the keys used in the translations
  * subdocument stored on the Work model (en, twi, ga, ewe).
  */
 export const APP_CODE_TO_FIELD = {
@@ -27,7 +29,10 @@ export const FIELD_TO_APP_CODE = Object.fromEntries(
   Object.entries(APP_CODE_TO_FIELD).map(([k, v]) => [v, k])
 )
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+/** All app target language codes (for iterating). */
+const TARGET_APP_CODES = ['en', 'tw', 'ga', 'ee']
+
+const GOOGLE_TRANSLATE_V2_URL = 'https://translation.googleapis.com/language/translate/v2'
 
 /**
  * Strip HTML tags and normalize whitespace so we don't send markup to the translator.
@@ -44,8 +49,80 @@ export function stripHtml(html) {
 }
 
 /**
- * Translate work content (title, excerpt, body) into Twi, Ga, and Ewe in ONE
- * OpenAI API call. Returns structured translations ready to be stored in MongoDB.
+ * Call Google Cloud Translation API v2 to translate an array of strings
+ * from sourceLang to targetLang (Google codes).
+ *
+ * @param {string[]} texts - Array of strings to translate (order preserved)
+ * @param {string} sourceGoogle - Google language code (e.g. 'en')
+ * @param {string} targetGoogle - Google language code (e.g. 'ak')
+ * @returns {Promise<string[]>} - Translated strings in same order
+ */
+async function translateBatch(texts, sourceGoogle, targetGoogle) {
+  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY
+  if (!apiKey) {
+    throw new Error('GOOGLE_TRANSLATE_API_KEY is not set. Enable Cloud Translation API and add the API key to .env')
+  }
+
+  if (sourceGoogle === targetGoogle) {
+    return [...texts]
+  }
+
+  const filtered = texts.filter((t) => t != null && String(t).trim() !== '')
+  if (filtered.length === 0) {
+    return texts.map(() => '')
+  }
+
+  const body = {
+    q: filtered,
+    source: sourceGoogle,
+    target: targetGoogle,
+    format: 'text',
+  }
+
+  const url = `${GOOGLE_TRANSLATE_V2_URL}?key=${encodeURIComponent(apiKey)}`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const errBody = await res.text()
+    let message = `Google Translate API error: ${res.status}`
+    try {
+      const json = JSON.parse(errBody)
+      if (json.error?.message) message = json.error.message
+    } catch {
+      if (errBody) message += ` — ${errBody.slice(0, 200)}`
+    }
+    throw new Error(message)
+  }
+
+  const data = await res.json()
+  const translations = data?.data?.translations ?? []
+  if (translations.length !== filtered.length) {
+    throw new Error('Google Translate returned a different number of translations than requested')
+  }
+
+  const translatedTexts = translations.map((t) => (t.translatedText ?? '').trim())
+
+  // Map back to original order (fill in blanks for empty inputs)
+  const result = []
+  let j = 0
+  for (const raw of texts) {
+    if (raw != null && String(raw).trim() !== '') {
+      result.push(translatedTexts[j++] ?? '')
+    } else {
+      result.push('')
+    }
+  }
+  return result
+}
+
+/**
+ * Translate work content (title, excerpt, body) into all other supported
+ * languages via Google Cloud Translation API. Returns the same structure
+ * as before: title/excerpt/body objects keyed by en, twi, ga, ewe.
  *
  * @param {{ title: string, excerpt: string, body: string }} content
  * @param {string} sourceLang - App language code: 'en' | 'tw' | 'ga' | 'ee'
@@ -56,65 +133,45 @@ export function stripHtml(html) {
  * }>}
  */
 export async function translateWorkContent({ title, excerpt, body }, sourceLang = 'en') {
-  const sourceLanguageName = LANG_NAMES[sourceLang] ?? 'English'
-
-  const plainBody = stripHtml(body ?? '').slice(0, 5000)
   const safeTitle = (title ?? '').trim()
   const safeExcerpt = (excerpt ?? '').slice(0, 1000)
+  const plainBody = stripHtml(body ?? '').slice(0, 5000)
 
-  const systemPrompt = `You are a professional literary translator specialising in Ghanaian languages.
-Translate the provided ${sourceLanguageName} text into Twi (Akan), Ga, and Ewe.
-Preserve tone, literary style, metaphors, and cultural nuance.
-
-Return ONLY a valid JSON object — no markdown, no explanations — with this exact shape:
-{
-  "title":   { "twi": "", "ga": "", "ewe": "" },
-  "excerpt": { "twi": "", "ga": "", "ewe": "" },
-  "body":    { "twi": "", "ga": "", "ewe": "" }
-}`
-
-  const userMessage = JSON.stringify({
-    title: safeTitle,
-    excerpt: safeExcerpt,
-    body: plainBody,
-  })
-
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    response_format: { type: 'json_object' },
-    temperature: 0.3,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user',   content: userMessage },
-    ],
-  })
-
-  const raw = response.choices[0]?.message?.content
-  if (!raw) throw new Error('OpenAI returned an empty translation response.')
-
-  const parsed = JSON.parse(raw)
-
-  // Merge original-language text into the translations object so every field
-  // is fully self-contained (no need to join with the root document).
+  const sourceGoogle = APP_CODE_TO_GOOGLE[sourceLang] ?? 'en'
   const originalField = APP_CODE_TO_FIELD[sourceLang] ?? 'en'
-  return {
-    title: {
-      twi: parsed.title?.twi ?? '',
-      ga:  parsed.title?.ga  ?? '',
-      ewe: parsed.title?.ewe ?? '',
-      [originalField]: safeTitle,
-    },
-    excerpt: {
-      twi: parsed.excerpt?.twi ?? '',
-      ga:  parsed.excerpt?.ga  ?? '',
-      ewe: parsed.excerpt?.ewe ?? '',
-      [originalField]: safeExcerpt,
-    },
-    body: {
-      twi: parsed.body?.twi ?? '',
-      ga:  parsed.body?.ga  ?? '',
-      ewe: parsed.body?.ewe ?? '',
-      [originalField]: plainBody,
-    },
+
+  // Build full result with original language filled in
+  const result = {
+    title:   { en: '', twi: '', ga: '', ewe: '', [originalField]: safeTitle },
+    excerpt: { en: '', twi: '', ga: '', ewe: '', [originalField]: safeExcerpt },
+    body:    { en: '', twi: '', ga: '', ewe: '', [originalField]: plainBody },
   }
+
+  const targets = TARGET_APP_CODES.filter((code) => code !== sourceLang)
+  if (targets.length === 0) {
+    return result
+  }
+
+  const texts = [safeTitle, safeExcerpt, plainBody]
+
+  for (const targetApp of targets) {
+    const targetGoogle = APP_CODE_TO_GOOGLE[targetApp]
+    const fieldKey = APP_CODE_TO_FIELD[targetApp]
+
+    try {
+      const [transTitle, transExcerpt, transBody] = await translateBatch(
+        texts,
+        sourceGoogle,
+        targetGoogle
+      )
+      result.title[fieldKey] = transTitle
+      result.excerpt[fieldKey] = transExcerpt
+      result.body[fieldKey] = transBody
+    } catch (err) {
+      console.error(`[translate] Failed to translate to ${targetApp} (${targetGoogle}):`, err.message)
+      // Leave that language empty so we don't break the whole flow; can retry later via translate endpoint
+    }
+  }
+
+  return result
 }

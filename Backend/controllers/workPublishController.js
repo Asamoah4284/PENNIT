@@ -32,7 +32,7 @@ function normalizeTopics(raw) {
  *
  * Create and optionally publish a new work.
  * When status is not 'draft', content is automatically translated into Twi, Ga,
- * and Ewe via a single OpenAI call and persisted in Work.translations.
+ * and Ewe via Google Cloud Translation API and persisted in Work.translations.
  * Translation is intentionally fire-and-forget on failure so publishing never
  * blocks — the translations object will simply be empty and can be populated
  * later via the translate endpoint.

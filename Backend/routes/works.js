@@ -102,7 +102,7 @@ router.get('/:id', async (req, res) => {
  * Returns translated title, excerpt, and body for a work.
  * Strategy (fastest first):
  *   1. Return from pre-computed Work.translations (stored at publish time) — zero AI cost.
- *   2. Fall back to a live OpenAI call if translations are missing (e.g. older works).
+ *   2. Fall back to a live Google Translate call if translations are missing (e.g. older works).
  */
 router.post('/:id/translate', async (req, res) => {
   try {
@@ -145,7 +145,7 @@ router.post('/:id/translate', async (req, res) => {
       })
     }
 
-    // ── No cache — call OpenAI and back-fill the document ────────────────────
+    // ── No cache — call Google Translate and back-fill the document ─────────
     const translated = await translateWorkContent(
       { title: work.title, excerpt: work.excerpt, body: work.body },
       sourceCode

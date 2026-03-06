@@ -15,7 +15,7 @@ const perFieldSchema = new mongoose.Schema(
 )
 
 /**
- * Holds pre-computed translations generated at publish time via OpenAI.
+ * Holds pre-computed translations generated at publish time via Google Translate.
  * Keyed by field name (title, excerpt, body); each field stores all four
  * language variants so readers never need to call the AI at read time.
  */
