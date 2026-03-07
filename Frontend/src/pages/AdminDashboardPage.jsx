@@ -422,27 +422,6 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                 />
             </div>
 
-            {/* Engagement + behavior KPIs */}
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-                <StatCard label="Total Reads" loading={loading}
-                    value={(stats?.totalReads ?? 0).toLocaleString()} sub="Across all works"
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M1 10s3.5-5.5 9-5.5S19 10 19 10s-3.5 5.5-9 5.5S1 10 1 10zm9 3a3 3 0 100-6 3 3 0 000 6z" /></svg>}
-                />
-                <StatCard label="Total Claps" loading={loading}
-                    value={(stats?.totalClaps ?? 0).toLocaleString()} sub="Engagement applause"
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M8.5 2.75a1.75 1.75 0 013.5 0v3.69a1.75 1.75 0 012.5 1.56v4.5A4.5 4.5 0 0110 17H7a4 4 0 01-4-4V9.5a1.5 1.5 0 013 0V12h.5V2.75z" /></svg>}
-                />
-                <StatCard label="Total Comments" loading={loading}
-                    value={(stats?.totalComments ?? 0).toLocaleString()} sub="Conversation volume"
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M3.43 2.524A41.29 41.29 0 0110 2c2.236 0 4.43.18 6.57.524 1.437.231 2.43 1.49 2.43 2.902v5.148c0 1.413-.993 2.67-2.43 2.902a41.202 41.202 0 01-5.183.501.78.78 0 00-.528.224l-3.579 3.58A.75.75 0 016 15.25v-3.197a41.033 41.033 0 01-.57-.029C2.704 11.58 1 9.902 1 7.626V4.426C1 3.014 1.993 1.755 3.43 1.524z" clipRule="evenodd" /></svg>}
-                />
-                <StatCard label="Followers / Playlists" loading={loading}
-                    value={`${(stats?.totalFollowers ?? 0).toLocaleString()} / ${(stats?.totalPlaylists ?? 0).toLocaleString()}`}
-                    sub={`${(stats?.totalSavedWorks ?? 0).toLocaleString()} saved • ${(stats?.usersWithPreferences ?? 0).toLocaleString()} pref profiles`}
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M10 2a3 3 0 00-3 3v1H6a3 3 0 00-3 3v3a6 6 0 0012 0V9a3 3 0 00-3-3h-1V5a3 3 0 00-1-2.236A3 3 0 0010 2z" /></svg>}
-                />
-            </div>
-
             {/* Charts row 1 */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <ChartCard title="User Growth" sub="New signups per month (last 6 months)" loading={loading} minHeight={220}>
