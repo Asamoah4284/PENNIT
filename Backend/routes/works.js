@@ -14,7 +14,7 @@ import {
 import { trackWorkView, trackWorkRead } from '../controllers/workReadController.js'
 import { publishPost } from '../controllers/workPublishController.js'
 import { createWorkTip } from '../controllers/tipController.js'
-import { translateWorkContent, stripHtml, APP_CODE_TO_FIELD } from '../services/translate.js'
+import { translateWorkContent, translateContentToTarget, stripHtml, APP_CODE_TO_FIELD } from '../services/translate.js'
 import { logActivity } from '../services/activityLog.js'
 
 const router = Router()
@@ -166,6 +166,64 @@ router.post('/:id/translate', async (req, res) => {
   } catch (err) {
     console.error('[translate]', err.message)
     res.status(500).json({ error: err?.message || 'Translation failed.' })
+  }
+})
+
+/**
+ * POST /api/works/translate-draft
+ *
+ * Translate in-progress writer content (title, excerpt, body) from source language
+ * to a selected target language using Google Translate.
+ */
+router.post('/translate-draft', async (req, res) => {
+  try {
+    const {
+      title = '',
+      excerpt = '',
+      body = '',
+      sourceLanguage = 'en',
+      targetLanguage = '',
+    } = req.body || {}
+
+    const sourceCode = String(sourceLanguage || 'en').toLowerCase()
+    const targetCode = String(targetLanguage || '').toLowerCase()
+
+    if (!TRANSLATABLE_LANGUAGES.includes(sourceCode)) {
+      return res.status(400).json({ error: 'Invalid source language. Use one of: en, tw, ga, ee' })
+    }
+    if (!TRANSLATABLE_LANGUAGES.includes(targetCode)) {
+      return res.status(400).json({ error: 'Invalid target language. Use one of: en, tw, ga, ee' })
+    }
+
+    // Same language: return input quickly (body normalized to plain text for consistency).
+    if (sourceCode === targetCode) {
+      return res.json({
+        title: String(title || ''),
+        excerpt: String(excerpt || ''),
+        body: stripHtml(String(body || '')),
+        sourceLanguage: sourceCode,
+        targetLanguage: targetCode,
+        cached: true,
+      })
+    }
+
+    const translated = await translateContentToTarget(
+      { title: String(title || ''), excerpt: String(excerpt || ''), body: String(body || '') },
+      sourceCode,
+      targetCode
+    )
+
+    return res.json({
+      title: translated.title,
+      excerpt: translated.excerpt,
+      body: translated.body,
+      sourceLanguage: sourceCode,
+      targetLanguage: targetCode,
+      cached: false,
+    })
+  } catch (err) {
+    console.error('[translate-draft]', err.message)
+    res.status(500).json({ error: err?.message || 'Draft translation failed.' })
   }
 })
 

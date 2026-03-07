@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { getUser, logout } from '../lib/auth'
 import { useConfig } from '../contexts/ConfigContext'
-import { getAssetUrl } from '../lib/api'
+import { getAssetUrl, getMyFollowing } from '../lib/api'
 import { useState, useEffect, useRef } from 'react'
 
 export default function Header({ onToggleLeftSidebar }) {
@@ -13,6 +13,7 @@ export default function Header({ onToggleLeftSidebar }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [hasOverlayShadow, setHasOverlayShadow] = useState(false)
+  const [following, setFollowing] = useState([])
   const profileMenuRef = useRef(null)
 
   useEffect(() => {
@@ -20,6 +21,16 @@ export default function Header({ onToggleLeftSidebar }) {
     window.addEventListener('pennit:user-updated', onUserUpdated)
     return () => window.removeEventListener('pennit:user-updated', onUserUpdated)
   }, [])
+
+  useEffect(() => {
+    if (!user?.id) {
+      setFollowing([])
+      return
+    }
+    getMyFollowing(user.id)
+      .then((data) => setFollowing(data?.following ?? []))
+      .catch(() => setFollowing([]))
+  }, [user?.id, userTick])
 
   useEffect(() => {
     const handleResponsesOpen = (e) => {
@@ -230,18 +241,48 @@ export default function Header({ onToggleLeftSidebar }) {
               <div className="my-8 border-t border-stone-100"></div>
               <div>
                 <h3 className="text-sm font-semibold text-stone-900 mb-4 px-3">Following</h3>
-                <div className="px-3">
-                  <div className="flex items-center gap-3 mb-4 cursor-pointer hover:bg-stone-50 p-2 -mx-2 rounded-lg transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                        <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-stone-600">Find writers</p>
-                      <p className="text-xs text-stone-400">See suggestions</p>
-                    </div>
-                  </div>
+                <div className="px-3 space-y-2">
+                  {following.length === 0 ? (
+                    <>
+                      <p className="text-stone-500 text-sm mb-3">Writers you follow will appear here.</p>
+                      <Link to="/reader" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-stone-50 transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-400">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-stone-600">Find writers</p>
+                          <p className="text-xs text-stone-400">Discover stories & follow authors</p>
+                        </div>
+                      </Link>
+                    </>
+                  ) : (
+                    following.slice(0, 8).map((author) => (
+                      <Link
+                        key={author.id}
+                        to={`/author/${author.id}`}
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-stone-50 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-stone-200 flex-shrink-0">
+                          {author.avatarUrl ? (
+                            <img src={getAssetUrl(author.avatarUrl)} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-stone-500">
+                              {(author.penName || '?').charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-sm font-medium text-stone-900 truncate">{author.penName}</span>
+                      </Link>
+                    ))
+                  )}
+                  {following.length > 8 && (
+                    <Link to="/reader" onClick={() => setIsSidebarOpen(false)} className="block mt-2 text-sm text-stone-500 hover:text-stone-900 font-medium">
+                      See all ({following.length})
+                    </Link>
+                  )}
                 </div>
               </div>
             </>

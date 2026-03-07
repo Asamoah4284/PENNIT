@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getUser } from '../lib/auth'
-import { createWork, uploadImage, getAssetUrl } from '../lib/api'
+import { createWork, uploadImage, getAssetUrl, translateDraftContent } from '../lib/api'
 import { CONTENT_LANGUAGES } from '../lib/languages'
 import { GENRES } from '../lib/genres'
 import ImageCropModal from '../components/ImageCropModal'
@@ -26,6 +26,7 @@ export default function WriterNewStoryPage() {
   const [category, setCategory] = useState('short_story')
   const [genre, setGenre] = useState('General')
   const [language, setLanguage] = useState('en')
+  const [draftTextLanguage, setDraftTextLanguage] = useState('en')
   const [excerpt, setExcerpt] = useState('')
   const [body, setBody] = useState('')
   const [thumbnailUrl, setThumbnailUrl] = useState('')
@@ -34,6 +35,8 @@ export default function WriterNewStoryPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [topicsInput, setTopicsInput] = useState('')
+  const [translating, setTranslating] = useState(false)
+  const [translateError, setTranslateError] = useState('')
 
   const toggleQuickTopic = (topic) => {
     const parts = topicsInput
@@ -129,6 +132,34 @@ export default function WriterNewStoryPage() {
     saveStory('draft')
   }
 
+  const handleTranslateDraft = async () => {
+    const target = language
+    if (!target) return
+    if (target === draftTextLanguage) {
+      setTranslateError('Choose a different content language to translate to.')
+      return
+    }
+    setTranslateError('')
+    setTranslating(true)
+    try {
+      const translated = await translateDraftContent({
+        title,
+        excerpt,
+        body,
+        sourceLanguage: draftTextLanguage,
+        targetLanguage: target,
+      })
+      setTitle(translated.title || '')
+      setExcerpt(translated.excerpt || '')
+      setBody(translated.body || '')
+      setDraftTextLanguage(target)
+    } catch (err) {
+      setTranslateError(err?.message || 'Translation failed. Please try again.')
+    } finally {
+      setTranslating(false)
+    }
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
       <Link to="/writers-dashboard" className="text-stone-500 text-sm hover:text-stone-900 mb-6 inline-block">
@@ -179,7 +210,10 @@ export default function WriterNewStoryPage() {
           <label className="block text-sm font-medium text-stone-700 mb-1.5">Content language</label>
           <select
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
+            onChange={(e) => {
+              setLanguage(e.target.value)
+              setTranslateError('')
+            }}
             className="w-full px-3 py-2.5 rounded-lg border border-stone-200 bg-white"
             title="Language your story is written in (Twi, Ga, Ewe, or English)"
           >
@@ -285,6 +319,28 @@ export default function WriterNewStoryPage() {
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">Story</label>
           <RichTextEditor value={body} onChange={setBody} />
+        </div>
+        <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+          <p className="text-sm font-medium text-stone-800 mb-2">Translate while writing</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleTranslateDraft}
+              disabled={translating || saving}
+              className="px-3 py-2 rounded-lg bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-50"
+            >
+              {translating ? 'Translating…' : 'Translate to selected language'}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-stone-500">
+            Select your target in Content language, then click translate. This translates title, short summary, and story body using Google Translate.
+          </p>
+          <p className="mt-1 text-xs text-stone-400">
+            Current draft language: {CONTENT_LANGUAGES.find((l) => l.code === draftTextLanguage)?.name || draftTextLanguage}
+          </p>
+          {translateError && (
+            <p className="mt-2 text-xs text-red-600">{translateError}</p>
+          )}
         </div>
         <div className="flex flex-wrap gap-3 pt-2">
           <button

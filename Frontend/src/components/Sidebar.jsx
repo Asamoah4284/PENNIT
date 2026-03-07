@@ -9,6 +9,7 @@ export default function Sidebar() {
   const location = useLocation()
   const isActive = (path) => location.pathname === path
   const [following, setFollowing] = useState([])
+  const [followingLoading, setFollowingLoading] = useState(false)
   const [followingMenuOpen, setFollowingMenuOpen] = useState(null)
   const menuRef = useRef(null)
 
@@ -19,10 +20,16 @@ export default function Sidebar() {
   }, [])
 
   useEffect(() => {
-    if (!user?.id) return
+    if (!user?.id) {
+      setFollowing([])
+      setFollowingLoading(false)
+      return
+    }
+    setFollowingLoading(true)
     getMyFollowing(user.id)
       .then((data) => setFollowing(data?.following ?? []))
       .catch(() => setFollowing([]))
+      .finally(() => setFollowingLoading(false))
   }, [user?.id, userTick])
 
   useEffect(() => {
@@ -52,11 +59,13 @@ export default function Sidebar() {
 
       </nav>
 
-      {/* Following section */}
+      {/* Following section - writers the reader follows */}
       <div className="flex-1 min-h-0 p-4 flex flex-col">
         <h3 className="text-sm font-bold text-stone-900 mb-3">Following</h3>
-        {following.length === 0 ? (
-          <p className="text-stone-500 text-sm">Writers you follow will appear here.</p>
+        {followingLoading ? (
+          <p className="text-stone-400 text-sm">Loading…</p>
+        ) : following.length === 0 ? (
+          <p className="text-stone-500 text-sm">Writers you follow will appear here. Follow from Discover or an author&apos;s page.</p>
         ) : (
           <ul className="space-y-2">
             {following.slice(0, 5).map((author) => (

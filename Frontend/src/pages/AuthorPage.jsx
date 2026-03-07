@@ -38,11 +38,11 @@ export default function AuthorPage() {
       setLoading(false)
       return
     }
-    getAuthor(id)
+    getAuthor(id, user?.id)
       .then(setAuthor)
       .catch(() => setAuthor(null))
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, user?.id])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -68,6 +68,7 @@ export default function AuthorPage() {
             }
           : prev
       )
+      window.dispatchEvent(new CustomEvent('pennit:user-updated'))
     } finally {
       setPendingFollow(false)
     }
@@ -102,44 +103,68 @@ export default function AuthorPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 w-full min-w-0">
-      {/* Minimal header: name + options menu */}
+      {/* Minimal header: name + Follow button + options menu */}
       <header className="mb-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">
             {author.penName || 'Author'}
           </h1>
-          <div className="relative flex-shrink-0" ref={menuRef}>
-            <button
-              type="button"
-              onClick={() => setMenuOpen((prev) => !prev)}
-              className="p-2 rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-colors"
-              aria-label="Options"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                <path fillRule="evenodd" d="M4.5 12a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm6 0a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm6 0a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z" clipRule="evenodd" />
-              </svg>
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-48 py-1 bg-white rounded-lg shadow-lg border border-stone-200 z-10">
-                <Link
-                  to="/reader"
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-                >
-                  Back to discover
-                </Link>
-                {user && (
-                  <button
-                    type="button"
-                    onClick={handleToggleFollow}
-                    disabled={pendingFollow}
-                    className="block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 disabled:opacity-50"
-                  >
-                    {author._following ? 'Unfollow' : 'Follow'} {author.penName || 'author'}
-                  </button>
-                )}
-              </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Follow button – visible for readers to follow and get updates */}
+            {user ? (
+              <button
+                type="button"
+                onClick={handleToggleFollow}
+                disabled={pendingFollow}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors disabled:opacity-50 ${
+                  author._following
+                    ? 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                    : 'bg-stone-900 text-white hover:bg-stone-800'
+                }`}
+              >
+                {pendingFollow ? '…' : author._following ? 'Following' : 'Follow'}
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="px-4 py-2 rounded-full text-sm font-medium bg-stone-900 text-white hover:bg-stone-800 transition-colors"
+              >
+                Follow
+              </Link>
             )}
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((prev) => !prev)}
+                className="p-2 rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-colors"
+                aria-label="Options"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                  <path fillRule="evenodd" d="M4.5 12a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm6 0a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm6 0a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z" clipRule="evenodd" />
+                </svg>
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-48 py-1 bg-white rounded-lg shadow-lg border border-stone-200 z-10">
+                  <Link
+                    to="/reader"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                  >
+                    Back to discover
+                  </Link>
+                  {user && (
+                    <button
+                      type="button"
+                      onClick={handleToggleFollow}
+                      disabled={pendingFollow}
+                      className="block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+                    >
+                      {author._following ? 'Unfollow' : 'Follow'} {author.penName || 'author'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { getWork, updateWork, deleteWork, uploadImage, getAssetUrl } from '../lib/api'
+import { getWork, updateWork, deleteWork, uploadImage, getAssetUrl, translateDraftContent } from '../lib/api'
 import { CONTENT_LANGUAGES, getLanguageName } from '../lib/languages'
 import { GENRES } from '../lib/genres'
 import ImageCropModal from '../components/ImageCropModal'
@@ -48,12 +48,15 @@ export default function WriterStoryPage() {
   const [language, setLanguage] = useState('en')
   const [excerpt, setExcerpt] = useState('')
   const [body, setBody] = useState('')
+  const [draftTextLanguage, setDraftTextLanguage] = useState('en')
   const [thumbnailUrl, setThumbnailUrl] = useState('')
   const [thumbnailUploading, setThumbnailUploading] = useState(false)
   const [cropImageSrc, setCropImageSrc] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [translating, setTranslating] = useState(false)
+  const [translateError, setTranslateError] = useState('')
 
   useEffect(() => {
     if (!id) {
@@ -67,6 +70,7 @@ export default function WriterStoryPage() {
         setCategory(data.category || 'short_story')
         setGenre(data.genre || 'General')
         setLanguage(data.language || 'en')
+        setDraftTextLanguage(data.language || 'en')
         setExcerpt(data.excerpt || '')
         setBody(data.body || '')
         setThumbnailUrl(data.thumbnailUrl || '')
@@ -80,6 +84,7 @@ export default function WriterStoryPage() {
     setCategory(work?.category || 'short_story')
     setGenre(work?.genre || 'General')
     setLanguage(work?.language || 'en')
+    setDraftTextLanguage(work?.language || 'en')
     setExcerpt(work?.excerpt || '')
     setBody(work?.body || '')
     setThumbnailUrl(work?.thumbnailUrl || '')
@@ -90,6 +95,7 @@ export default function WriterStoryPage() {
   const cancelEdit = () => {
     setIsEditing(false)
     setSaveError('')
+    setTranslateError('')
   }
 
   const handlePublish = async () => {
@@ -143,6 +149,34 @@ export default function WriterStoryPage() {
   const handleSaveAndPublish = (e) => {
     e.preventDefault()
     saveWork(true)
+  }
+
+  const handleTranslateDraft = async () => {
+    const target = language
+    if (!target) return
+    if (target === draftTextLanguage) {
+      setTranslateError('Choose a different content language to translate to.')
+      return
+    }
+    setTranslateError('')
+    setTranslating(true)
+    try {
+      const translated = await translateDraftContent({
+        title,
+        excerpt,
+        body,
+        sourceLanguage: draftTextLanguage,
+        targetLanguage: target,
+      })
+      setTitle(translated.title || '')
+      setExcerpt(translated.excerpt || '')
+      setBody(translated.body || '')
+      setDraftTextLanguage(target)
+    } catch (err) {
+      setTranslateError(err?.message || 'Translation failed. Please try again.')
+    } finally {
+      setTranslating(false)
+    }
   }
 
   const handleThumbnailFileSelect = (e) => {
@@ -326,7 +360,10 @@ export default function WriterStoryPage() {
               <label className="block text-sm font-medium text-stone-700 mb-1.5">Content language</label>
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                onChange={(e) => {
+                  setLanguage(e.target.value)
+                  setTranslateError('')
+                }}
                 className="w-full px-3 py-2.5 rounded-lg border border-stone-200 bg-white"
               >
                 {CONTENT_LANGUAGES.map((l) => (
@@ -383,6 +420,28 @@ export default function WriterStoryPage() {
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1.5">Story</label>
               <RichTextEditor value={body} onChange={setBody} />
+            </div>
+            <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+              <p className="text-sm font-medium text-stone-800 mb-2">Translate while editing</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleTranslateDraft}
+                  disabled={translating || saving}
+                  className="px-3 py-2 rounded-lg bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-50"
+                >
+                  {translating ? 'Translating…' : 'Translate to selected language'}
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-stone-500">
+                Select your target in Content language, then click translate. This translates title, short summary, and story body using Google Translate.
+              </p>
+              <p className="mt-1 text-xs text-stone-400">
+                Current draft language: {CONTENT_LANGUAGES.find((l) => l.code === draftTextLanguage)?.name || draftTextLanguage}
+              </p>
+              {translateError && (
+                <p className="mt-2 text-xs text-red-600">{translateError}</p>
+              )}
             </div>
             <div className="flex flex-wrap gap-3 pt-2">
               <button

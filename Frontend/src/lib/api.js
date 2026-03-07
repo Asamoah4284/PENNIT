@@ -166,6 +166,16 @@ export async function translateWork(workId, targetLanguage) {
   return handleResponse(res)
 }
 
+/** Translate writer in-progress draft content to target language (en, tw, ga, ee). */
+export async function translateDraftContent({ title, excerpt, body, sourceLanguage, targetLanguage }) {
+  const res = await fetch(`${API_BASE}/api/works/translate-draft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, excerpt, body, sourceLanguage, targetLanguage }),
+  })
+  return handleResponse(res)
+}
+
 /** Delete a work - for writers */
 export async function deleteWork(id) {
   const res = await fetch(`${API_BASE}/api/works/${id}`, { method: 'DELETE' })
