@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import mongoose from 'mongoose'
 import Work from '../models/Work.js'
 import {
   createWorkComment,
@@ -14,6 +15,7 @@ import { trackWorkView, trackWorkRead } from '../controllers/workReadController.
 import { publishPost } from '../controllers/workPublishController.js'
 import { createWorkTip } from '../controllers/tipController.js'
 import { translateWorkContent, stripHtml, APP_CODE_TO_FIELD } from '../services/translate.js'
+import { logActivity } from '../services/activityLog.js'
 
 const router = Router()
 
@@ -194,6 +196,8 @@ router.put('/:id', async (req, res) => {
     }
 
     await work.save()
+    const uid = req.headers['x-user-id']
+    if (uid && mongoose.Types.ObjectId.isValid(String(uid))) logActivity(uid, 'work_updated', { workId: work._id.toString(), workTitle: work.title }).catch(() => {})
     const populated = await Work.findById(work._id)
       .populate('authorId', 'penName avatarUrl')
       .lean()
@@ -212,6 +216,8 @@ router.delete('/:id', async (req, res) => {
     if (!work) {
       return res.status(404).json({ error: 'Work not found' })
     }
+    const uid = req.headers['x-user-id']
+    if (uid && mongoose.Types.ObjectId.isValid(String(uid))) logActivity(uid, 'work_deleted_by_author', { workId: req.params.id, workTitle: work.title }).catch(() => {})
     res.status(204).send()
   } catch (err) {
     console.error('Error deleting work:', err)

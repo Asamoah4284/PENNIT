@@ -8,6 +8,7 @@ import SavedWork from '../models/SavedWork.js'
 import AuthorFollow from '../models/AuthorFollow.js'
 import { getSubscriberFlagsForUsers, getSubscriptionStatus } from '../services/subscriptionStatusService.js'
 import { recordInteraction } from '../services/feedScoringService.js'
+import { logActivity } from '../services/activityLog.js'
 
 function resolveUserId(req) {
   const raw = req.user?._id || req.user?.id || req.body?.userId || req.headers['x-user-id']
@@ -447,6 +448,7 @@ export async function toggleFollowAuthor(req, res) {
 
     await AuthorFollow.create({ authorId, followerId: userId })
     await Author.updateOne({ _id: authorId }, { $inc: { followerCount: 1 } }).exec()
+    logActivity(userId, 'author_follow', { authorId }).catch(() => {})
     const updated = await Author.findById(authorId).select('followerCount')
 
     return res.status(201).json({

@@ -3,7 +3,7 @@ import { getUser } from '../lib/auth'
 import {
     getAdminStats, getAdminUsers, getAdminWorks,
     updateAdminUserRole, deleteAdminWork, approveAdminWork, editAdminWork,
-    deleteAdminUser,
+    deleteAdminUser, createAdminUser,
 } from '../lib/api'
 import {
     AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -289,23 +289,49 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
     const user = getUser()
     const [stats, setStats] = useState(null)
     const [users, setUsers] = useState([])
+    const [usersPage, setUsersPage] = useState(1)
+    const [usersTotal, setUsersTotal] = useState(0)
+    const [usersTotalPages, setUsersTotalPages] = useState(1)
     const [works, setWorks] = useState([])
+    const [worksPage, setWorksPage] = useState(1)
+    const [worksTotal, setWorksTotal] = useState(0)
+    const [worksTotalPages, setWorksTotalPages] = useState(1)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [editing, setEditing] = useState(null) // work being edited
+    const [showCreateAdmin, setShowCreateAdmin] = useState(false)
+    const [createAdminRole, setCreateAdminRole] = useState('reader')
+    const [createAdminEmail, setCreateAdminEmail] = useState('')
+    const [createAdminName, setCreateAdminName] = useState('')
+    const [createAdminPassword, setCreateAdminPassword] = useState('')
+    const [createAdminConfirmPassword, setCreateAdminConfirmPassword] = useState('')
+    const [createAdminError, setCreateAdminError] = useState('')
+    const [createAdminSaving, setCreateAdminSaving] = useState(false)
 
+    const USERS_PAGE_SIZE = 10
+    const WORKS_PAGE_SIZE = 10
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true); setError(null)
             try {
                 if (tab === 'overview') setStats(await getAdminStats(user.id))
-                else if (tab === 'users') setUsers(await getAdminUsers(user.id))
-                else if (tab === 'works') setWorks(await getAdminWorks(user.id))
+                else if (tab === 'users') {
+                    const data = await getAdminUsers(user.id, { page: usersPage, limit: USERS_PAGE_SIZE })
+                    setUsers(Array.isArray(data.users) ? data.users : [])
+                    setUsersTotal(data.total ?? 0)
+                    setUsersTotalPages(data.totalPages ?? 1)
+                }
+                else if (tab === 'works') {
+                    const data = await getAdminWorks(user.id, { page: worksPage, limit: WORKS_PAGE_SIZE })
+                    setWorks(Array.isArray(data.works) ? data.works : [])
+                    setWorksTotal(data.total ?? 0)
+                    setWorksTotalPages(data.totalPages ?? 1)
+                }
             } catch (err) { setError(err.message) }
             finally { setLoading(false) }
         }
         if (user) fetchData()
-    }, [tab, user?.id])
+    }, [tab, user?.id, usersPage, worksPage])
 
     /* handlers */
     const handleRoleChange = async (uid, role) => {
@@ -316,15 +342,29 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
     }
     const handleDeleteWork = async (wid) => {
         if (!window.confirm('Permanently delete this work?')) return
-        try { await deleteAdminWork(user.id, wid); setWorks(p => p.filter(w => w.id !== wid)) }
-        catch (err) { alert(err.message) }
+        try {
+            await deleteAdminWork(user.id, wid)
+            const data = await getAdminWorks(user.id, { page: worksPage, limit: WORKS_PAGE_SIZE })
+            const newWorks = Array.isArray(data.works) ? data.works : []
+            setWorks(newWorks)
+            setWorksTotal(data.total ?? 0)
+            setWorksTotalPages(data.totalPages ?? 1)
+            if (newWorks.length === 0 && worksPage > 1) setWorksPage(p => p - 1)
+        } catch (err) { alert(err.message) }
     }
     const handleDeleteUser = async (uid) => {
         if (uid === user.id) return alert('You cannot delete your own account.')
         if (!window.confirm('Permanently delete this user? Their profile and works may remain as orphans if not handled. Proceed?')) return
         try {
             await deleteAdminUser(user.id, uid)
-            setUsers(p => p.filter(u => u.id !== uid))
+            const data = await getAdminUsers(user.id, { page: usersPage, limit: USERS_PAGE_SIZE })
+            const newUsers = Array.isArray(data.users) ? data.users : []
+            const newTotal = data.total ?? 0
+            const newTotalPages = data.totalPages ?? 1
+            setUsers(newUsers)
+            setUsersTotal(newTotal)
+            setUsersTotalPages(newTotalPages)
+            if (newUsers.length === 0 && usersPage > 1) setUsersPage(p => p - 1)
         } catch (err) { alert(err.message) }
     }
     const handleApproveWork = async (wid) => {
@@ -379,6 +419,27 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                 <StatCard label="Payouts" loading={loading}
                     value={`GH₵ ${(stats?.totalPayouts ?? 0).toFixed(2)}`} sub="Disbursed to authors"
                     icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" /></svg>}
+                />
+            </div>
+
+            {/* Engagement + behavior KPIs */}
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+                <StatCard label="Total Reads" loading={loading}
+                    value={(stats?.totalReads ?? 0).toLocaleString()} sub="Across all works"
+                    icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M1 10s3.5-5.5 9-5.5S19 10 19 10s-3.5 5.5-9 5.5S1 10 1 10zm9 3a3 3 0 100-6 3 3 0 000 6z" /></svg>}
+                />
+                <StatCard label="Total Claps" loading={loading}
+                    value={(stats?.totalClaps ?? 0).toLocaleString()} sub="Engagement applause"
+                    icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M8.5 2.75a1.75 1.75 0 013.5 0v3.69a1.75 1.75 0 012.5 1.56v4.5A4.5 4.5 0 0110 17H7a4 4 0 01-4-4V9.5a1.5 1.5 0 013 0V12h.5V2.75z" /></svg>}
+                />
+                <StatCard label="Total Comments" loading={loading}
+                    value={(stats?.totalComments ?? 0).toLocaleString()} sub="Conversation volume"
+                    icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M3.43 2.524A41.29 41.29 0 0110 2c2.236 0 4.43.18 6.57.524 1.437.231 2.43 1.49 2.43 2.902v5.148c0 1.413-.993 2.67-2.43 2.902a41.202 41.202 0 01-5.183.501.78.78 0 00-.528.224l-3.579 3.58A.75.75 0 016 15.25v-3.197a41.033 41.033 0 01-.57-.029C2.704 11.58 1 9.902 1 7.626V4.426C1 3.014 1.993 1.755 3.43 1.524z" clipRule="evenodd" /></svg>}
+                />
+                <StatCard label="Followers / Playlists" loading={loading}
+                    value={`${(stats?.totalFollowers ?? 0).toLocaleString()} / ${(stats?.totalPlaylists ?? 0).toLocaleString()}`}
+                    sub={`${(stats?.totalSavedWorks ?? 0).toLocaleString()} saved • ${(stats?.usersWithPreferences ?? 0).toLocaleString()} pref profiles`}
+                    icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M10 2a3 3 0 00-3 3v1H6a3 3 0 00-3 3v3a6 6 0 0012 0V9a3 3 0 00-3-3h-1V5a3 3 0 00-1-2.236A3 3 0 0010 2z" /></svg>}
                 />
             </div>
 
@@ -520,7 +581,9 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                             <div key={w.id ?? w._id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-[#FAFAFA] transition-colors">
                                 <div className="flex-1 min-w-0">
                                     <p className="text-[13px] font-medium text-[#111] truncate">{w.title}</p>
-                                    <p className="text-[12px] text-[#9CA3AF]">{w.readCount ?? 0} reads</p>
+                                    <p className="text-[12px] text-[#9CA3AF]">
+                                        {(w.readCount ?? 0).toLocaleString()} reads • {(w.clapCount ?? 0).toLocaleString()} claps • {(w.commentCount ?? 0).toLocaleString()} comments
+                                    </p>
                                 </div>
                                 <Badge color={w.status === 'pending' ? 'yellow' : w.status === 'draft' ? 'gray' : 'green'}>{w.status}</Badge>
                             </div>
@@ -532,25 +595,77 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
     )
 
     /* ═══════════════════════════════════════════════════════════ USERS */
+    const openCreateAdmin = () => {
+        setShowCreateAdmin(true)
+        setCreateAdminRole('reader')
+        setCreateAdminEmail('')
+        setCreateAdminName('')
+        setCreateAdminPassword('')
+        setCreateAdminConfirmPassword('')
+        setCreateAdminError('')
+    }
+    const handleCreateAdmin = async (e) => {
+        e.preventDefault()
+        setCreateAdminError('')
+        const email = createAdminEmail.trim()
+        const name = createAdminName.trim()
+        const password = createAdminPassword
+        const confirm = createAdminConfirmPassword
+        if (!email) { setCreateAdminError('Email is required.'); return }
+        if (!name) { setCreateAdminError('Name is required.'); return }
+        if (!password || password.length < 6) { setCreateAdminError('Password must be at least 6 characters.'); return }
+        if (password !== confirm) { setCreateAdminError('Passwords do not match.'); return }
+        setCreateAdminSaving(true)
+        try {
+            await createAdminUser(user.id, { email, name, password, role: createAdminRole })
+            const data = await getAdminUsers(user.id, { page: 1, limit: USERS_PAGE_SIZE })
+            setUsers(Array.isArray(data.users) ? data.users : [])
+            setUsersTotal(data.total ?? 0)
+            setUsersTotalPages(data.totalPages ?? 1)
+            setUsersPage(1)
+            setShowCreateAdmin(false)
+            setCreateAdminRole('reader')
+            setCreateAdminEmail('')
+            setCreateAdminName('')
+            setCreateAdminPassword('')
+            setCreateAdminConfirmPassword('')
+        } catch (err) {
+            setCreateAdminError(err.message || 'Failed to create user.')
+        } finally {
+            setCreateAdminSaving(false)
+        }
+    }
+
     if (tab === 'users') return (
         <div className="space-y-5 max-w-6xl">
-            <div>
-                <h1 className="text-[22px] font-bold text-[#111] tracking-tight">Users</h1>
-                <p className="text-[13px] text-[#6B7280] mt-1">{loading ? '…' : `${users.length} accounts registered`}</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h1 className="text-[22px] font-bold text-[#111] tracking-tight">Users</h1>
+                    <p className="text-[13px] text-[#6B7280] mt-1">
+                        {loading ? '…' : `${usersTotal} account${usersTotal !== 1 ? 's' : ''} registered`}
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={openCreateAdmin}
+                    className="px-4 py-2 rounded-xl bg-[#111] text-white text-[13px] font-semibold hover:bg-[#333] transition-colors"
+                >
+                    Create user
+                </button>
             </div>
             {/* Desktop View Table */}
             <div className="hidden sm:block bg-white border border-[#E5E7EB] rounded-xl overflow-hidden overflow-x-auto">
-                <table className="w-full text-left min-w-[700px]">
+                <table className="w-full text-left min-w-[980px]">
                     <thead>
                         <tr className="border-b border-[#F3F4F6]">
-                            {['User', 'Email', 'Role', 'Joined', ''].map(h => (
+                            {['User', 'Email', 'Role', 'Writer Insights', 'Behavior', 'Joined', ''].map(h => (
                                 <th key={h} className="px-5 py-3.5 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider">{h}</th>
                             ))}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-[#F9FAFB]">
                         {loading ? [1, 2, 3, 4, 5].map(i => (
-                            <tr key={i}>{[1, 2, 3, 4, 5].map(j => <td key={j} className="px-5 py-4"><Skeleton className="h-3.5 w-full max-w-[120px]" /></td>)}</tr>
+                            <tr key={i}>{[1, 2, 3, 4, 5, 6, 7].map(j => <td key={j} className="px-5 py-4"><Skeleton className="h-3.5 w-full max-w-[120px]" /></td>)}</tr>
                         )) : users.map(u => (
                             <tr key={u.id} className="hover:bg-[#FAFAFA] transition-colors group">
                                 <td className="px-5 py-3.5">
@@ -569,6 +684,23 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                                         <option value="writer">writer</option>
                                         <option value="admin">admin</option>
                                     </select>
+                                </td>
+                                <td className="px-5 py-3.5 text-[12px] text-[#6B7280]">
+                                    {u.role === 'writer' ? (
+                                        <div className="space-y-0.5">
+                                            <p><span className="font-semibold text-[#111]">{(u.writerFollowerCount ?? 0).toLocaleString()}</span> followers</p>
+                                        </div>
+                                    ) : '—'}
+                                </td>
+                                <td className="px-5 py-3.5 text-[12px] text-[#6B7280]">
+                                    <div className="space-y-0.5">
+                                        <p>{(u.playlistCount ?? 0).toLocaleString()} playlists • {(u.savedWorkCount ?? 0).toLocaleString()} saved</p>
+                                        <p className="text-[#9CA3AF]">
+                                            {(u.preferenceSummary?.favoriteCategories?.length || u.preferenceSummary?.preferredLanguages?.length)
+                                                ? `Pref: ${(u.preferenceSummary.favoriteCategories ?? []).slice(0, 2).join(', ') || '—'} • ${(u.preferenceSummary.preferredLanguages ?? []).slice(0, 2).join(', ') || '—'}`
+                                                : 'Pref: none yet'}
+                                        </p>
+                                    </div>
                                 </td>
                                 <td className="px-5 py-3.5 text-[12px] text-[#9CA3AF] font-medium whitespace-nowrap">
                                     {new Date(u.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -637,10 +769,154 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                                 </p>
                             </div>
                         </div>
+                        <div className="pt-2 border-t border-[#F3F4F6] text-[12px] text-[#6B7280] space-y-1">
+                            <p>
+                                {u.role === 'writer'
+                                    ? `${(u.writerFollowerCount ?? 0).toLocaleString()} followers`
+                                    : 'Not a writer'}
+                            </p>
+                            <p>{(u.playlistCount ?? 0).toLocaleString()} playlists • {(u.savedWorkCount ?? 0).toLocaleString()} saved works</p>
+                            <p className="text-[#9CA3AF]">
+                                {(u.preferenceSummary?.favoriteCategories?.length || u.preferenceSummary?.preferredLanguages?.length)
+                                    ? `Pref: ${(u.preferenceSummary.favoriteCategories ?? []).slice(0, 2).join(', ') || '—'} • ${(u.preferenceSummary.preferredLanguages ?? []).slice(0, 2).join(', ') || '—'}`
+                                    : 'Pref: none yet'}
+                            </p>
+                        </div>
                     </div>
                 ))}
                 {!loading && users.length === 0 && <div className="py-12 text-center text-[13px] text-[#9CA3AF]">No users found.</div>}
             </div>
+
+            {/* Pagination (below table and mobile cards) */}
+            {!loading && usersTotal > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 py-3 border-t border-[#F3F4F6]">
+                    <p className="text-[12px] text-[#6B7280]">
+                        Showing {(usersPage - 1) * USERS_PAGE_SIZE + 1}–{Math.min(usersPage * USERS_PAGE_SIZE, usersTotal)} of {usersTotal}
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setUsersPage(p => Math.max(1, p - 1))}
+                            disabled={usersPage <= 1}
+                            className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white text-[13px] font-medium text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Previous
+                        </button>
+                        <span className="text-[12px] text-[#6B7280] font-medium px-1">
+                            Page {usersPage} of {usersTotalPages}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setUsersPage(p => Math.min(usersTotalPages, p + 1))}
+                            disabled={usersPage >= usersTotalPages}
+                            className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white text-[13px] font-medium text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Create user modal */}
+            {showCreateAdmin && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#111]/40 backdrop-blur-sm" onClick={() => !createAdminSaving && setShowCreateAdmin(false)} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl border border-[#E5E7EB] w-full max-w-md overflow-hidden">
+                        <div className="px-6 py-4 border-b border-[#F3F4F6]">
+                            <h2 className="text-lg font-bold text-[#111]">Create user</h2>
+                            <p className="text-[13px] text-[#6B7280] mt-0.5">Add a new user or admin. Choose the role below.</p>
+                        </div>
+                        <form onSubmit={handleCreateAdmin} className="p-6 space-y-4">
+                            {createAdminError && (
+                                <p className="text-[13px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2" role="alert">{createAdminError}</p>
+                            )}
+                            <div>
+                                <label htmlFor="create-admin-role" className="block text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-1.5">Role</label>
+                                <select
+                                    id="create-admin-role"
+                                    value={createAdminRole}
+                                    onChange={e => setCreateAdminRole(e.target.value)}
+                                    className="w-full px-3 py-2.5 rounded-lg border border-[#E5E7EB] text-[#111] bg-white focus:outline-none focus:ring-2 focus:ring-[#111] focus:border-transparent"
+                                    disabled={createAdminSaving}
+                                >
+                                    <option value="reader">Reader</option>
+                                    <option value="writer">Writer</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="create-admin-name" className="block text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-1.5">Name</label>
+                                <input
+                                    id="create-admin-name"
+                                    type="text"
+                                    value={createAdminName}
+                                    onChange={e => setCreateAdminName(e.target.value)}
+                                    placeholder="Admin full name"
+                                    className="w-full px-3 py-2.5 rounded-lg border border-[#E5E7EB] text-[#111] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#111] focus:border-transparent"
+                                    disabled={createAdminSaving}
+                                    autoComplete="name"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="create-admin-email" className="block text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-1.5">Email</label>
+                                <input
+                                    id="create-admin-email"
+                                    type="email"
+                                    value={createAdminEmail}
+                                    onChange={e => setCreateAdminEmail(e.target.value)}
+                                    placeholder="admin@example.com"
+                                    className="w-full px-3 py-2.5 rounded-lg border border-[#E5E7EB] text-[#111] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#111] focus:border-transparent"
+                                    disabled={createAdminSaving}
+                                    autoComplete="email"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="create-admin-password" className="block text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-1.5">Password</label>
+                                <input
+                                    id="create-admin-password"
+                                    type="password"
+                                    value={createAdminPassword}
+                                    onChange={e => setCreateAdminPassword(e.target.value)}
+                                    placeholder="At least 6 characters"
+                                    className="w-full px-3 py-2.5 rounded-lg border border-[#E5E7EB] text-[#111] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#111] focus:border-transparent"
+                                    disabled={createAdminSaving}
+                                    autoComplete="new-password"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="create-admin-confirm" className="block text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-1.5">Confirm password</label>
+                                <input
+                                    id="create-admin-confirm"
+                                    type="password"
+                                    value={createAdminConfirmPassword}
+                                    onChange={e => setCreateAdminConfirmPassword(e.target.value)}
+                                    placeholder="Re-enter password"
+                                    className="w-full px-3 py-2.5 rounded-lg border border-[#E5E7EB] text-[#111] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#111] focus:border-transparent"
+                                    disabled={createAdminSaving}
+                                    autoComplete="new-password"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={createAdminSaving}
+                                    className="flex-1 px-4 py-2.5 rounded-xl bg-[#111] text-white text-[13px] font-semibold hover:bg-[#333] disabled:opacity-50 transition-colors"
+                                >
+                                    {createAdminSaving ? 'Creating…' : 'Create user'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => !createAdminSaving && setShowCreateAdmin(false)}
+                                    disabled={createAdminSaving}
+                                    className="flex-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-[#374151] text-[13px] font-semibold hover:bg-[#F9FAFB] disabled:opacity-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     )
 
@@ -657,7 +933,10 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                     {w.excerpt && <p className="text-[12px] text-[#9CA3AF] truncate mt-0.5">{w.excerpt}</p>}
                 </td>
                 <td className="px-5 py-3.5"><Badge color="gray">{w.category?.replace('_', ' ') ?? '—'}</Badge></td>
+                <td className="px-5 py-3.5 text-[12px] text-[#6B7280]">{w.authorPenName || '—'}</td>
                 <td className="px-5 py-3.5 text-[13px] text-[#6B7280] font-medium tabular-nums">{(w.readCount ?? 0).toLocaleString()}</td>
+                <td className="px-5 py-3.5 text-[13px] text-[#6B7280] font-medium tabular-nums">{(w.clapCount ?? 0).toLocaleString()}</td>
+                <td className="px-5 py-3.5 text-[13px] text-[#6B7280] font-medium tabular-nums">{(w.commentCount ?? 0).toLocaleString()}</td>
                 <td className="px-5 py-3.5 text-[12px] text-[#9CA3AF] font-medium whitespace-nowrap">
                     {new Date(w.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </td>
@@ -696,7 +975,9 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                     <div className="flex items-start justify-between">
                         <div>
                             <h1 className="text-[22px] font-bold text-[#111] tracking-tight">Content</h1>
-                            <p className="text-[13px] text-[#6B7280] mt-1">{loading ? '…' : `${works.length} total · ${pending.length} pending review`}</p>
+                            <p className="text-[13px] text-[#6B7280] mt-1">
+                                {loading ? '…' : `${worksTotal} total work${worksTotal !== 1 ? 's' : ''} · ${pending.length} pending on this page`}
+                            </p>
                         </div>
                         {!loading && pending.length > 0 && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-50 border border-yellow-200 text-yellow-700 text-[12px] font-semibold rounded-full">
@@ -720,7 +1001,10 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                                             </div>
                                             {w.excerpt && <p className="text-[12px] text-[#9CA3AF] truncate">{w.excerpt}</p>}
                                             <p className="text-[11px] text-[#D1D5DB] mt-1 font-medium">
-                                                {new Date(w.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} · {w.category?.replace('_', ' ')}
+                                                {new Date(w.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} · {w.category?.replace('_', ' ')} · {w.authorPenName || 'Unknown author'}
+                                            </p>
+                                            <p className="text-[11px] text-[#9CA3AF] mt-1">
+                                                {(w.readCount ?? 0).toLocaleString()} reads • {(w.clapCount ?? 0).toLocaleString()} claps • {(w.commentCount ?? 0).toLocaleString()} comments
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0 sm:justify-end">
@@ -740,14 +1024,14 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
 
                         {/* Desktop View Table */}
                         <div className="hidden sm:block bg-white border border-[#E5E7EB] rounded-xl overflow-hidden overflow-x-auto">
-                            <table className="w-full text-left min-w-[700px]">
+                            <table className="w-full text-left min-w-[920px]">
                                 <thead>
                                     <tr className="border-b border-[#F3F4F6]">
-                                        {['Title', 'Category', 'Reads', 'Date', ''].map(h => <th key={h} className="px-5 py-3.5 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider">{h}</th>)}
+                                        {['Title', 'Category', 'Author', 'Reads', 'Claps', 'Comments', 'Date', ''].map(h => <th key={h} className="px-5 py-3.5 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider">{h}</th>)}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#F9FAFB]">
-                                    {loading ? [1, 2, 3, 4].map(i => <tr key={i}>{[1, 2, 3, 4, 5].map(j => <td key={j} className="px-5 py-4"><Skeleton className="h-3.5 w-full max-w-[120px]" /></td>)}</tr>)
+                                    {loading ? [1, 2, 3, 4].map(i => <tr key={i}>{[1, 2, 3, 4, 5, 6, 7, 8].map(j => <td key={j} className="px-5 py-4"><Skeleton className="h-3.5 w-full max-w-[120px]" /></td>)}</tr>)
                                         : published.map(w => <WorkRow key={w.id} w={w} />)}
                                 </tbody>
                             </table>
@@ -770,6 +1054,10 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                                                 <Badge color="gray">{w.category?.replace('_', ' ') ?? '—'}</Badge>
                                                 <span className="text-[11px] text-[#9CA3AF] font-medium">{(w.readCount ?? 0).toLocaleString()} reads</span>
                                             </div>
+                                            <p className="text-[11px] text-[#9CA3AF] mt-1">
+                                                {(w.clapCount ?? 0).toLocaleString()} claps • {(w.commentCount ?? 0).toLocaleString()} comments
+                                            </p>
+                                            <p className="text-[11px] text-[#D1D5DB] mt-1">{w.authorPenName || 'Unknown author'}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center justify-between pt-3 border-t border-[#F3F4F6]">
@@ -794,7 +1082,12 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                                 {drafts.map(w => (
                                     <div key={w.id} className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-3.5 hover:bg-[#FAFAFA] transition-colors group">
                                         <div className="flex-1 min-w-0 flex items-center justify-between sm:justify-start gap-4">
-                                            <p className="text-[13px] font-medium text-[#6B7280] truncate">{w.title}</p>
+                                            <div className="min-w-0">
+                                                <p className="text-[13px] font-medium text-[#6B7280] truncate">{w.title}</p>
+                                                <p className="text-[11px] text-[#9CA3AF] mt-0.5">
+                                                    {(w.readCount ?? 0).toLocaleString()} reads • {(w.clapCount ?? 0).toLocaleString()} claps • {(w.commentCount ?? 0).toLocaleString()} comments
+                                                </p>
+                                            </div>
                                             <Badge color="gray">draft</Badge>
                                         </div>
                                         <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity justify-end">
@@ -803,6 +1096,36 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Pagination */}
+                    {!loading && worksTotal > 0 && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 py-3 border-t border-[#F3F4F6]">
+                            <p className="text-[12px] text-[#6B7280]">
+                                Showing {(worksPage - 1) * WORKS_PAGE_SIZE + 1}–{Math.min(worksPage * WORKS_PAGE_SIZE, worksTotal)} of {worksTotal}
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setWorksPage(p => Math.max(1, p - 1))}
+                                    disabled={worksPage <= 1}
+                                    className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white text-[13px] font-medium text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-[12px] text-[#6B7280] font-medium px-1">
+                                    Page {worksPage} of {worksTotalPages}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setWorksPage(p => Math.min(worksTotalPages, p + 1))}
+                                    disabled={worksPage >= worksTotalPages}
+                                    className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white text-[13px] font-medium text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    Next
+                                </button>
                             </div>
                         </div>
                     )}

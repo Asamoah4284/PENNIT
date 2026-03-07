@@ -30,6 +30,43 @@ const NAV = [
             </svg>
         ),
     },
+    {
+        label: 'Activity log',
+        path: '/victor-access-control/activity',
+        icon: (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM4.5 8.5a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zM14.25 8.5a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zM4.5 12.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zM14.25 12.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75z" clipRule="evenodd" />
+            </svg>
+        ),
+    },
+    {
+        label: 'Subscription payments',
+        path: '/victor-access-control/subscription-payments',
+        icon: (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path d="M10.75 10.818v2.614A3.13 3.13 0 0011.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 00-1.138-.432zM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 00-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.202.592.037.051.08.102.128.152z" />
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-6a6 6 0 00-6 6v.75c0 2.123.8 4.057 2.118 5.463a8.432 8.432 0 002.296 2.046c.224.161.477.283.732.395.29.124.595.223.907.286.319.064.644.099.967.099.323 0 .648-.035.967-.099.312-.063.617-.162.907-.286.255-.112.508-.234.732-.395a8.432 8.432 0 002.296-2.046A6.004 6.004 0 0016 4.75V4a6 6 0 00-6-6z" clipRule="evenodd" />
+            </svg>
+        ),
+    },
+    {
+        label: 'Payouts',
+        path: '/victor-access-control/payouts',
+        icon: (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1-3a1 1 0 100-2 1 1 0 000 2zm3 0a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+        ),
+    },
+    {
+        label: 'Comments',
+        path: '/victor-access-control/comments',
+        icon: (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path fillRule="evenodd" d="M3.43 2.524A41.29 41.29 0 0110 2c2.236 0 4.43.18 6.57.524 1.437.231 2.43 1.49 2.43 2.902v5.148c0 1.413-.993 2.67-2.43 2.902a41.202 41.202 0 01-5.183.501.78.78 0 00-.528.224l-3.579 3.58A.75.75 0 016 15.25v-3.197a41.033 41.033 0 01-.57-.029C2.704 11.58 1 9.902 1 7.626V4.426C1 3.014 1.993 1.755 3.43 1.524z" clipRule="evenodd" />
+            </svg>
+        ),
+    },
 ]
 
 export default function AdminLayout() {
@@ -56,11 +93,11 @@ export default function AdminLayout() {
                 />
             )}
 
-            {/* ── Sidebar ─────────────────────────────────────────────── */}
+            {/* ── Sidebar (fixed on desktop so it doesn't scroll with the page) ───────── */}
             <aside
                 className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-[#E5E7EB] transition-all duration-300 
                     ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} 
-                    ${collapsed ? 'md:w-[60px]' : 'md:w-[220px]'} w-[240px] md:relative`}
+                    ${collapsed ? 'md:w-[60px]' : 'md:w-[220px]'} w-[240px]`}
             >
                 {/* Logo */}
                 <div className="h-14 flex items-center justify-between px-4 border-b border-[#E5E7EB] shrink-0">
@@ -140,10 +177,11 @@ export default function AdminLayout() {
                 </div>
             </aside>
 
-            {/* ── Main area ────────────────────────────────────────────── */}
-            <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 w-full`}>
-
-                {/* Top bar */}
+            {/* ── Main area: offset by sidebar width on desktop so only content scrolls ── */}
+            <div
+                className={`flex-1 flex flex-col min-h-screen transition-all duration-300 w-full ${collapsed ? 'md:ml-[60px]' : 'md:ml-[220px]'}`}
+            >
+                {/* Top bar (sticky so header stays visible when scrolling) */}
                 <header className="h-14 bg-white border-b border-[#E5E7EB] flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-30">
                     <div className="flex items-center gap-3">
                         {/* Mobile Menu Button */}

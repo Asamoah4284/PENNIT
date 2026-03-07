@@ -5,6 +5,7 @@ import User from '../models/User.js'
 import Author from '../models/Author.js'
 import AuthorFollow from '../models/AuthorFollow.js'
 import { getSubscriptionStatus } from '../services/subscriptionStatusService.js'
+import { logActivity } from '../services/activityLog.js'
 
 const router = Router()
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -206,6 +207,7 @@ router.get('/me/following', async (req, res) => {
 /**
  * POST /api/users/switch-role
  * Switch current user between 'reader' and 'writer'.
+ * Requires current password in body for verification.
  * Reader -> Writer: Creates Author profile if missing.
  */
 router.post('/switch-role', async (req, res) => {
@@ -215,9 +217,19 @@ router.post('/switch-role', async (req, res) => {
       return res.status(401).json({ error: 'Authentication required' })
     }
 
+    const { password } = req.body
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Password is required to switch role' })
+    }
+
     const user = await User.findById(rawUserId)
     if (!user) {
       return res.status(404).json({ error: 'User not found' })
+    }
+
+    const match = await bcrypt.compare(password, user.password)
+    if (!match) {
+      return res.status(401).json({ error: 'Incorrect password' })
     }
 
     if (user.role === 'admin') {
@@ -253,6 +265,7 @@ router.post('/switch-role', async (req, res) => {
       avatarUrl: updated.avatarUrl || '',
       bio: updated.bio || '',
     }
+    logActivity(user._id, 'role_switch', { newRole: updated.role }).catch(() => {})
 
     res.json(profile)
   } catch (err) {

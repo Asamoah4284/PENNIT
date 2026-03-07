@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
 import Author from '../models/Author.js'
+import { logActivity } from '../services/activityLog.js'
 
 const router = Router()
 
@@ -45,6 +46,7 @@ router.post('/signup', async (req, res) => {
       penName: userRole === 'writer' ? (penName || '').trim() : '',
       authorId,
     })
+    logActivity(user._id, 'signup', { role: userRole }).catch(() => {})
 
     res.status(201).json(user)
   } catch (err) {
@@ -88,6 +90,7 @@ router.post('/login', async (req, res) => {
       user.authorId = author._id
       await user.save()
     }
+    logActivity(user._id, 'login', {}).catch(() => {})
 
     res.json(user)
   } catch (err) {

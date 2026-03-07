@@ -1,5 +1,7 @@
 import Work from '../models/Work.js'
+import User from '../models/User.js'
 import { translateWorkContent } from '../services/translate.js'
+import { logActivity } from '../services/activityLog.js'
 
 /**
  * Normalise a topics array from raw request input.
@@ -113,6 +115,8 @@ export async function publishPost(req, res) {
 
     // ── Persist ──────────────────────────────────────────────────────────────
     const work = await Work.create(doc)
+    const actorId = req.headers['x-user-id'] || (await User.findOne({ authorId }).select('_id').lean())?._id
+    if (actorId) logActivity(actorId, workStatus === 'pending' ? 'work_submitted' : 'work_created', { workId: work._id.toString(), workTitle: work.title, status: workStatus }).catch(() => {})
 
     const populated = await Work.findById(work._id)
       .populate('authorId', 'penName avatarUrl')

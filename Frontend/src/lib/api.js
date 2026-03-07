@@ -94,11 +94,12 @@ export async function updateProfile(userId, payload) {
   return handleResponse(res)
 }
 
-/** POST /api/users/switch-role - Switch current user between reader and writer. */
-export async function switchRole(userId) {
+/** POST /api/users/switch-role - Switch current user between reader and writer. Requires password for verification. */
+export async function switchRole(userId, password) {
   const res = await fetch(`${API_BASE}/api/users/switch-role`, {
     method: 'POST',
-    headers: { 'x-user-id': userId },
+    headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+    body: JSON.stringify({ password }),
   })
   return handleResponse(res)
 }
@@ -505,6 +506,15 @@ export async function removeWorkFromPlaylist(userId, playlistId, workId) {
 
 /** --- Admin APIs --- */
 
+/** GET /api/victor-access-control/activity - Admin activity log (live). */
+export async function getAdminActivity(userId, params = {}) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const q = new URLSearchParams(params).toString()
+  const res = await fetch(`${API_BASE}/api/victor-access-control/activity${q ? `?${q}` : ''}`, { headers })
+  return handleResponse(res)
+}
+
 /** GET /api/victor-access-control/stats - Admin dashboard stats. */
 export async function getAdminStats(userId) {
   const headers = {}
@@ -513,11 +523,27 @@ export async function getAdminStats(userId) {
   return handleResponse(res)
 }
 
-/** GET /api/victor-access-control/users - Admin list all users. */
-export async function getAdminUsers(userId) {
+/** GET /api/victor-access-control/users - Admin list users (paginated). Returns { users, total, page, limit, totalPages }. */
+export async function getAdminUsers(userId, { page = 1, limit = 10 } = {}) {
   const headers = {}
   if (userId) headers['x-user-id'] = userId
-  const res = await fetch(`${API_BASE}/api/victor-access-control/users`, { headers })
+  const params = new URLSearchParams()
+  if (page) params.set('page', String(page))
+  if (limit) params.set('limit', String(limit))
+  const q = params.toString()
+  const res = await fetch(`${API_BASE}/api/victor-access-control/users${q ? `?${q}` : ''}`, { headers })
+  return handleResponse(res)
+}
+
+/** POST /api/victor-access-control/users - Admin create a new user (reader, writer, or admin). */
+export async function createAdminUser(adminUserId, { email, name, password, role }) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (adminUserId) headers['x-user-id'] = adminUserId
+  const res = await fetch(`${API_BASE}/api/victor-access-control/users`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ email, name, password, role: role || 'reader' }),
+  })
   return handleResponse(res)
 }
 
@@ -544,11 +570,15 @@ export async function deleteAdminUser(userId, targetUserId) {
   return handleResponse(res)
 }
 
-/** GET /api/victor-access-control/works - Admin list all works. */
-export async function getAdminWorks(userId) {
+/** GET /api/victor-access-control/works - Admin list works (paginated). Returns { works, total, page, limit, totalPages }. */
+export async function getAdminWorks(userId, { page = 1, limit = 10 } = {}) {
   const headers = {}
   if (userId) headers['x-user-id'] = userId
-  const res = await fetch(`${API_BASE}/api/victor-access-control/works`, { headers })
+  const params = new URLSearchParams()
+  if (page) params.set('page', String(page))
+  if (limit) params.set('limit', String(limit))
+  const q = params.toString()
+  const res = await fetch(`${API_BASE}/api/victor-access-control/works${q ? `?${q}` : ''}`, { headers })
   return handleResponse(res)
 }
 
@@ -583,5 +613,32 @@ export async function editAdminWork(userId, workId, updates) {
     headers,
     body: JSON.stringify(updates),
   })
+  return handleResponse(res)
+}
+
+/** GET /api/victor-access-control/subscription-payments - Admin list subscription payments (paginated). */
+export async function getAdminSubscriptionPayments(userId, { page = 1, limit = 10 } = {}) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const q = new URLSearchParams({ page, limit }).toString()
+  const res = await fetch(`${API_BASE}/api/victor-access-control/subscription-payments?${q}`, { headers })
+  return handleResponse(res)
+}
+
+/** GET /api/victor-access-control/payouts - Admin list payouts (paginated). */
+export async function getAdminPayouts(userId, { page = 1, limit = 10 } = {}) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const q = new URLSearchParams({ page, limit }).toString()
+  const res = await fetch(`${API_BASE}/api/victor-access-control/payouts?${q}`, { headers })
+  return handleResponse(res)
+}
+
+/** GET /api/victor-access-control/comments - Admin list comments (paginated). */
+export async function getAdminComments(userId, { page = 1, limit = 10 } = {}) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const q = new URLSearchParams({ page, limit }).toString()
+  const res = await fetch(`${API_BASE}/api/victor-access-control/comments?${q}`, { headers })
   return handleResponse(res)
 }

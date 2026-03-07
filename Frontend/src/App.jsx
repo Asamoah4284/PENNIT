@@ -18,6 +18,10 @@ import WriterNewStoryPage from './pages/WriterNewStoryPage'
 import WriterStoryAnalyticsPage from './pages/WriterStoryAnalyticsPage'
 import PricingPage from './pages/PricingPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
+import AdminActivityPage from './pages/AdminActivityPage'
+import AdminSubscriptionPaymentsPage from './pages/AdminSubscriptionPaymentsPage'
+import AdminPayoutsPage from './pages/AdminPayoutsPage'
+import AdminCommentsPage from './pages/AdminCommentsPage'
 import AdminLoginPage from './pages/AdminLoginPage'
 import AdminLayout from './components/AdminLayout'
 
@@ -95,6 +99,10 @@ function App() {
         <Route index element={<AdminDashboardPage tab="overview" />} />
         <Route path="users" element={<AdminDashboardPage tab="users" />} />
         <Route path="works" element={<AdminDashboardPage tab="works" />} />
+        <Route path="activity" element={<AdminActivityPage />} />
+        <Route path="subscription-payments" element={<AdminSubscriptionPaymentsPage />} />
+        <Route path="payouts" element={<AdminPayoutsPage />} />
+        <Route path="comments" element={<AdminCommentsPage />} />
       </Route>
       <Route path="/victor-access-control/login" element={<AdminLoginPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { getUser, setUser } from '../lib/auth'
 import { getMe, updateProfile, changePassword, uploadImage, getAssetUrl, switchRole } from '../lib/api'
 import ImageCropModal from '../components/ImageCropModal'
-import ConfirmationModal from '../components/ConfirmationModal'
 
 const TABS = [
   { id: 'about', label: 'About' },
@@ -37,6 +36,8 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [showSwitchModal, setShowSwitchModal] = useState(false)
+  const [switchPassword, setSwitchPassword] = useState('')
+  const [switchError, setSwitchError] = useState('')
 
   const user = getUser()
 
@@ -223,31 +224,96 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            <ConfirmationModal
-              isOpen={showSwitchModal}
-              onClose={() => setShowSwitchModal(false)}
-              onConfirm={async () => {
-                if (!user?.id || saving) return
-                setSaving(true)
-                try {
-                  const updated = await switchRole(user.id)
-                  setProfile(updated)
-                  setUser(updated)
-                  window.dispatchEvent(new CustomEvent('pennit:user-updated'))
-                  setShowSwitchModal(false)
-                } catch (err) {
-                  alert(err.message || "Failed to switch role.")
-                } finally {
-                  setSaving(false)
-                }
-              }}
-              isLoading={saving}
-              title={profile?.role === 'reader' ? "Become a Writer?" : "Become a Reader?"}
-              message={profile?.role === 'reader'
-                ? "You'll be able to publish stories, poems, and novels to build your own audience."
-                : "Switching back to a Reader account means you'll need an active subscription to read full stories."}
-              confirmLabel={profile?.role === 'reader' ? "Yes, become a Writer" : "Yes, become a Reader"}
-            />
+            {/* Switch role modal: user types password → backend verifies → then switch */}
+            {showSwitchModal && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div
+                  className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+                  onClick={() => {
+                    setShowSwitchModal(false)
+                    setSwitchPassword('')
+                    setSwitchError('')
+                  }}
+                />
+                <div className="relative bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-sm overflow-hidden">
+                  <div className="p-6">
+                    <h3 className="text-lg font-bold text-stone-900 mb-1">
+                      {profile?.role === 'reader' ? 'Become a Writer' : 'Become a Reader'}
+                    </h3>
+                    <p className="text-stone-600 text-sm leading-relaxed mb-4">
+                      {profile?.role === 'reader'
+                        ? "You'll be able to publish stories, poems, and novels. Enter your account password to confirm."
+                        : "You'll need an active subscription to read full stories as a reader. Enter your account password to confirm."}
+                    </p>
+                    <label htmlFor="switch-role-password" className="block text-xs font-medium text-stone-500 uppercase tracking-wider mb-1.5">
+                      Password
+                    </label>
+                    <input
+                      id="switch-role-password"
+                      type="password"
+                      value={switchPassword}
+                      onChange={(e) => {
+                        setSwitchPassword(e.target.value)
+                        setSwitchError('')
+                      }}
+                      placeholder="Type your password"
+                      className="w-full px-3 py-2.5 rounded-lg border border-stone-300 text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
+                      disabled={saving}
+                      autoComplete="current-password"
+                      aria-describedby={switchError ? 'switch-role-error' : undefined}
+                    />
+                    {switchError && (
+                      <p id="switch-role-error" className="mt-2 text-sm text-red-600" role="alert">
+                        {switchError}
+                      </p>
+                    )}
+                  </div>
+                  <div className="bg-stone-50 p-4 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!user?.id || saving) return
+                        const pwd = switchPassword.trim()
+                        if (!pwd) {
+                          setSwitchError('Please type your password.')
+                          return
+                        }
+                        setSwitchError('')
+                        setSaving(true)
+                        try {
+                          const updated = await switchRole(user.id, pwd)
+                          setProfile(updated)
+                          setUser(updated)
+                          window.dispatchEvent(new CustomEvent('pennit:user-updated'))
+                          setShowSwitchModal(false)
+                          setSwitchPassword('')
+                        } catch (err) {
+                          setSwitchError(err.message || 'Failed to switch role.')
+                        } finally {
+                          setSaving(false)
+                        }
+                      }}
+                      disabled={saving}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-stone-900 text-white text-sm font-semibold hover:bg-stone-800 disabled:opacity-50 transition-colors"
+                    >
+                      {saving ? 'Verifying...' : 'Verify and switch'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSwitchModal(false)
+                        setSwitchPassword('')
+                        setSwitchError('')
+                      }}
+                      disabled={saving}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-700 text-sm font-semibold hover:bg-stone-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
