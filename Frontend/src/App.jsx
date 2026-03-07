@@ -118,7 +118,6 @@ function SignupRedirect() {
   return <Navigate to={to} replace />
 }
 
-/** Redirect /login to landing with signin popup (no dedicated login page) */
 function LoginRedirect() {
   return <Navigate to="/?signin=1" replace />
 }
