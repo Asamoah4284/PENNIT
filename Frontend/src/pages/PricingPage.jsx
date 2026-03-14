@@ -72,11 +72,43 @@ export default function PricingPage() {
   const readerPlan = plans.find((p) => p.planType === 'reader') || plans[0]
   const writerPlan = plans.find((p) => p.planType === 'writer') || plans[1]
 
+  const benefits = [
+    { label: 'Full access to all stories and featured content', highlight: true },
+    { label: 'Unlock Editor’s Picks and early-access pieces', highlight: true },
+    { label: 'Save your favourite pieces and revisit anytime' },
+    { label: 'Create playlists to organise stories, poems & novels' },
+    { label: '14-day free trial — no charge until you choose a plan' },
+    { label: 'Subscriber badge on your profile and comments' },
+    { label: 'Tip writers (Reader plan) to support the creators you love' },
+  ]
+
   return (
     <div className="max-w-3xl mx-auto px-6 py-12">
       <h1 className="text-2xl font-bold text-stone-900 mb-2">Subscribe</h1>
       <p className="text-stone-600 mb-2">Monthly plans in Ghana Cedis (GHC). New accounts get a 14-day free trial of subscriber features.</p>
       <p className="text-stone-500 text-sm mb-8">After the trial, choose a plan to keep full access, save pieces, use playlists, and (Reader only) tip writers.</p>
+
+      {/* Subscriber benefits — treasure-style gold highlight */}
+      <div className="mb-10 p-6 rounded-2xl bg-gradient-to-br from-amber-100 via-yellow-50 to-amber-200/80 border-2 border-amber-400/60 shadow-lg shadow-amber-200/40 relative overflow-hidden">
+        {/* Subtle inner glow */}
+        <div className="absolute inset-0 bg-gradient-to-t from-amber-300/10 to-transparent pointer-events-none" aria-hidden />
+        <div className="relative">
+          <h2 className="text-lg font-bold text-amber-900 mb-1">What you get as a subscriber</h2>
+          <p className="text-sm text-amber-800/90 mb-4">One subscription unlocks everything below — your treasure.</p>
+          <ul className="space-y-3">
+            {benefits.map((item, i) => (
+              <li key={i} className={`flex items-start gap-3 text-sm ${item.highlight ? 'text-amber-900 font-semibold' : 'text-amber-800/90'}`}>
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center mt-0.5 shadow-sm" aria-hidden>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-white">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                <span>{item.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
       {error && (
         <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-100 text-red-800 text-sm">
@@ -95,11 +127,12 @@ export default function PricingPage() {
           <div className="p-6 rounded-2xl border-2 border-stone-900 bg-white shadow-sm">
             <h2 className="text-lg font-semibold text-stone-900">Reader</h2>
             <p className="mt-2 text-2xl font-bold text-stone-900">GH₵ {Number(readerPlan.amountGhc).toFixed(2)}<span className="text-base font-normal text-stone-500">/month</span></p>
-            <ul className="mt-3 text-sm text-stone-600 space-y-1">
-              <li>Full access to all stories & featured pieces</li>
-              <li>Save pieces & create playlists</li>
-              <li>Tip writers (GH₵0.01–9.99)</li>
-              <li>Subscriber badge on profile & comments</li>
+            <p className="mt-1 text-xs text-stone-500">All subscriber benefits + tip writers</p>
+            <ul className="mt-3 text-sm text-stone-600 space-y-2">
+              <li className="flex items-center gap-2"><span className="text-yellow-500">✓</span> Full access to all stories & featured pieces</li>
+              <li className="flex items-center gap-2"><span className="text-yellow-500">✓</span> Save pieces & create playlists</li>
+              <li className="flex items-center gap-2"><span className="text-yellow-500">✓</span> Tip writers (GH₵0.01–9.99)</li>
+              <li className="flex items-center gap-2"><span className="text-yellow-500">✓</span> Subscriber badge on profile & comments</li>
             </ul>
             {!subscription && (
               <button
@@ -117,12 +150,12 @@ export default function PricingPage() {
           <div className="p-6 rounded-2xl border border-stone-200 bg-white shadow-sm">
             <h2 className="text-lg font-semibold text-stone-900">Writer</h2>
             <p className="mt-2 text-2xl font-bold text-stone-900">GH₵ {Number(writerPlan.amountGhc).toFixed(2)}<span className="text-base font-normal text-stone-500">/month</span></p>
-            <p className="mt-2 text-xs text-stone-500 font-medium">For writers who want premium reader features</p>
-            <ul className="mt-3 text-sm text-stone-600 space-y-1">
-              <li>Read featured & Editor's Pick pieces</li>
-              <li>Save pieces & create playlists</li>
-              <li>Subscriber badge</li>
-              <li>No tipping (Reader plan only)</li>
+            <p className="mt-1 text-xs text-stone-500">All subscriber benefits for writers</p>
+            <ul className="mt-3 text-sm text-stone-600 space-y-2">
+              <li className="flex items-center gap-2"><span className="text-yellow-500">✓</span> Read featured & Editor's Pick pieces</li>
+              <li className="flex items-center gap-2"><span className="text-yellow-500">✓</span> Save pieces & create playlists</li>
+              <li className="flex items-center gap-2"><span className="text-yellow-500">✓</span> Subscriber badge</li>
+              <li className="flex items-center gap-2"><span className="text-stone-400">—</span> Tip writers (Reader plan only)</li>
             </ul>
             {!subscription && (
               <button
