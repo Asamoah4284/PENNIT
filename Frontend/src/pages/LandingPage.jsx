@@ -23,6 +23,16 @@ export default function LandingPage() {
     const [signinError, setSigninError] = useState('')
     const [signinLoading, setSigninLoading] = useState(false)
 
+    // Hero image rotation: 3 images, cycle every 5s with fade-in transition
+    const HERO_IMAGES = ['/images/hero-2.png', '/images/hero-illustration.png', '/images/hero.png']
+    const [heroIndex, setHeroIndex] = useState(0)
+    useEffect(() => {
+        const id = setInterval(() => {
+            setHeroIndex((i) => (i + 1) % HERO_IMAGES.length)
+        }, 5000)
+        return () => clearInterval(id)
+    }, [])
+
     // Lock body scroll while on landing (mobile hero should not scroll)
     useEffect(() => {
         const previous = document.body.style.overflow
@@ -273,16 +283,19 @@ export default function LandingPage() {
                     </div>
                 </div>
 
-                {/* Right Side - Image (shown first on mobile, right on desktop) */}
+                {/* Right Side - Hero slideshow (3 images, 5s rotation, fade-in transition) */}
                 <div className="flex-1 h-full lg:min-h-0 lg:w-1/2 relative overflow-hidden order-first lg:order-none">
-                    <img
-                        src="/images/hero-illustration.png"
-                        alt="African creativity"
-                        className="absolute inset-0 w-full h-full object-cover"
-                        onError={(e) => {
-                            e.target.src = 'https://images.unsplash.com/photo-1544535830-9df3f56fff6a?w=800&q=80'
-                        }}
-                    />
+                    {HERO_IMAGES.map((src, i) => (
+                        <img
+                            key={src}
+                            src={src}
+                            alt="African creativity"
+                            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${heroIndex === i ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none'}`}
+                            onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1544535830-9df3f56fff6a?w=800&q=80'
+                            }}
+                        />
+                    ))}
                     {/* Overlay Pattern */}
                     <div className="absolute inset-0 bg-gradient-to-r from-stone-900/20 to-transparent"></div>
 

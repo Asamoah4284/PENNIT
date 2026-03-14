@@ -13,10 +13,20 @@ const ConfigContext = createContext({
 export function ConfigProvider({ children }) {
   const [config, setConfig] = useState({ monetizationEnabled: false, configLoading: true })
 
-  useEffect(() => {
+  const loadConfig = () => {
     getConfig()
       .then((data) => setConfig({ ...data, configLoading: false }))
       .catch(() => setConfig({ monetizationEnabled: false, configLoading: false }))
+  }
+
+  useEffect(() => {
+    loadConfig()
+  }, [])
+
+  useEffect(() => {
+    const onConfigUpdated = () => loadConfig()
+    window.addEventListener('pennit:config-updated', onConfigUpdated)
+    return () => window.removeEventListener('pennit:config-updated', onConfigUpdated)
   }, [])
 
   return (

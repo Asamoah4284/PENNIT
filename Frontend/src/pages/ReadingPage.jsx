@@ -20,6 +20,7 @@ import {
   removeWorkFromPlaylist,
   createPlaylist,
   tipWork,
+  toggleFollowAuthor,
 } from '../lib/api'
 import { getUser } from '../lib/auth'
 import { useConfig } from '../contexts/ConfigContext'
@@ -128,6 +129,7 @@ export default function ReadingPage() {
   const [tipModalOpen, setTipModalOpen] = useState(false)
   const [tipAmount, setTipAmount] = useState('')
   const [tipSubmitting, setTipSubmitting] = useState(false)
+  const [followAuthorLoading, setFollowAuthorLoading] = useState(false)
   const [tipSuccess, setTipSuccess] = useState(false)
   const [tipError, setTipError] = useState('')
 
@@ -385,6 +387,23 @@ export default function ReadingPage() {
       // could show toast
     } finally {
       setPlaylistLoading(false)
+    }
+  }
+
+  const authorId = work?.authorId?._id ?? work?.authorId?.id ?? work?.authorId
+
+  const handleFollowAuthor = async () => {
+    const aid = authorId != null ? String(authorId) : null
+    if (!user?.id || !aid) return
+    setMenuOpen(false)
+    setFollowAuthorLoading(true)
+    try {
+      await toggleFollowAuthor(aid, user.id)
+      window.dispatchEvent(new CustomEvent('pennit:user-updated'))
+    } catch {
+      // keep menu closed
+    } finally {
+      setFollowAuthorLoading(false)
     }
   }
 
@@ -776,11 +795,18 @@ export default function ReadingPage() {
               <div className="absolute right-0 top-full mt-1 pt-1.5 z-50">
                 <div className="absolute right-4 top-0 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white drop-shadow-[0_-1px_1px_rgba(0,0,0,0.06)]" />
                 <div className="min-w-[240px] rounded-lg bg-white border border-stone-200 shadow-lg py-1">
-                  <button type="button" className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-t-lg" onClick={() => setMenuOpen(false)}>Follow author</button>
-                  <button type="button" className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-none" onClick={() => setMenuOpen(false)}>Follow publication</button>
+                  <button type="button" className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-t-lg disabled:opacity-50" onClick={handleFollowAuthor} disabled={!authorId || followAuthorLoading}>
+                    {followAuthorLoading ? '…' : 'Follow author'}
+                  </button>
                   <div className="my-1 border-t border-stone-200" />
                   <button type="button" className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-none" onClick={() => setMenuOpen(false)}>Mute author</button>
-                  <button type="button" className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-none" onClick={() => setMenuOpen(false)}>Mute publication</button>
+                  {isSubscriber && (
+                    <>
+                      <div className="my-1 border-t border-stone-200" />
+                      <button type="button" className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-none" onClick={() => { setMenuOpen(false); setPlaylistMenuOpen(true) }}>Add to playlist</button>
+                    </>
+                  )}
+                  <div className="my-1 border-t border-stone-200" />
                   <button type="button" className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-stone-50 rounded-b-lg" onClick={() => setMenuOpen(false)}>Report story…</button>
                 </div>
               </div>

@@ -1,12 +1,13 @@
 import Subscription from '../models/Subscription.js'
+import { getMonetizationEnabled } from '../services/appConfigService.js'
 
 /**
- * When MONETIZATION_ENABLED is true, requires the current user to have an active subscription.
- * When false, calls next() (no paywall).
+ * When monetization is on (admin toggle), requires the current user to have an active subscription.
+ * When off, calls next() (no paywall).
  * User identity: req.body.userId or req.headers['x-user-id']. If missing when monetization on, 401.
  */
 export async function requireActiveSubscription(req, res, next) {
-  if (process.env.MONETIZATION_ENABLED !== 'true') {
+  if (!getMonetizationEnabled()) {
     return next()
   }
 

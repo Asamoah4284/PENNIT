@@ -10,6 +10,7 @@ import Playlist from '../models/Playlist.js'
 import SavedWork from '../models/SavedWork.js'
 import UserPreferences from '../models/UserPreferences.js'
 import { logActivity } from '../services/activityLog.js'
+import { getMonetizationEnabled, setMonetizationEnabled } from '../services/appConfigService.js'
 
 const router = Router()
 
@@ -31,6 +32,27 @@ const isAdmin = async (req, res, next) => {
         res.status(500).json({ error: 'Server error' })
     }
 }
+
+/** GET /api/victor-access-control/config - Get app config (admin only). */
+router.get('/config', isAdmin, (_req, res) => {
+    res.json({ monetizationEnabled: getMonetizationEnabled() })
+})
+
+/** PATCH /api/victor-access-control/config - Update app config (admin only). Body: { monetizationEnabled?: boolean } */
+router.patch('/config', isAdmin, async (req, res) => {
+    try {
+        const { monetizationEnabled } = req.body || {}
+        if (typeof monetizationEnabled !== 'boolean') {
+            return res.status(400).json({ error: 'Body must include monetizationEnabled (boolean)' })
+        }
+        await setMonetizationEnabled(monetizationEnabled)
+        const adminId = req.headers['x-user-id']
+        if (adminId) logActivity(adminId, 'config_updated', { monetizationEnabled }).catch(() => {})
+        res.json({ monetizationEnabled: getMonetizationEnabled() })
+    } catch (err) {
+        res.status(500).json({ error: err?.message || 'Failed to update config' })
+    }
+})
 
 /** GET /api/victor-access-control/activity - List recent activity (admin only). */
 router.get('/activity', isAdmin, async (req, res) => {

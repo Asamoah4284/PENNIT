@@ -7,6 +7,7 @@ import {
   getPayoutPoolForMonth,
   getWriterPointsForMonth,
 } from '../services/earningsService.js'
+import { getMonetizationEnabled } from '../services/appConfigService.js'
 
 const router = Router()
 
@@ -122,7 +123,7 @@ router.get('/payout-method', async (req, res) => {
 /** PUT /api/earnings/payout-method - Set payout method. Body: { type: 'bank'|'mobile_money', bankCode?, accountNumber?, accountName?, mobileMoneyNumber?, mobileMoneyProvider? } */
 router.put('/payout-method', async (req, res) => {
   try {
-    if (process.env.MONETIZATION_ENABLED !== 'true') {
+    if (!getMonetizationEnabled()) {
       return res.status(400).json({ error: 'Monetization is not enabled' })
     }
     const userId = resolveUserId(req)

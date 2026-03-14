@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 import Work from '../models/Work.js'
 import WorkRead from '../models/WorkRead.js'
 import { recordInteraction } from '../services/feedScoringService.js'
+import { logActivity } from '../services/activityLog.js'
 
 const READ_PROGRESS_THRESHOLD = 60
 const READ_TIME_SECONDS_THRESHOLD = 30
@@ -191,6 +192,12 @@ export async function trackWorkRead(req, res) {
       const signals = { readTime: time }
       if (viewLanguage) signals.language = viewLanguage
       recordInteraction(userId, work.toObject(), signals).catch(() => {})
+      logActivity(userId, 'work_read', {
+        workId: work._id.toString(),
+        workTitle: work.title,
+        timeSpentSeconds: time,
+        progressPercentage: progress,
+      }).catch(() => {})
     }
 
     return res.status(201).json({

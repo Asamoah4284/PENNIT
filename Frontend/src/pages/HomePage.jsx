@@ -1,15 +1,106 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { getWorks, getAssetUrl, toggleSaveWork, createWorkComment } from '../lib/api'
+import { getWorks, getAssetUrl, toggleSaveWork, createWorkComment, getMySubscription, toggleFollowAuthor, getMyPlaylists, addWorkToPlaylist, createPlaylist } from '../lib/api'
 import { getUser } from '../lib/auth'
+import { useConfig } from '../contexts/ConfigContext'
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('forYou')
   const [works, setWorks] = useState([])
   const [loading, setLoading] = useState(true)
+  const [tabSwitching, setTabSwitching] = useState(false)
   const [pendingAction, setPendingAction] = useState(null)
 
   const user = getUser()
+  const { monetizationEnabled } = useConfig()
+  const [isSubscriber, setIsSubscriber] = useState(false)
+  const tabSwitchTimerRef = useRef(null)
+  const [addToPlaylistWorkId, setAddToPlaylistWorkId] = useState(null)
+  const [playlists, setPlaylists] = useState([])
+  const [playlistsLoading, setPlaylistsLoading] = useState(false)
+  const [addToPlaylistLoading, setAddToPlaylistLoading] = useState(false)
+  const [newPlaylistName, setNewPlaylistName] = useState('')
+  const [showNewPlaylistInput, setShowNewPlaylistInput] = useState(false)
+
+  useEffect(() => {
+    if (!monetizationEnabled) {
+      setIsSubscriber(true)
+      return
+    }
+    if (!user?.id) {
+      setIsSubscriber(false)
+      return
+    }
+    getMySubscription(user.id)
+      .then((data) => setIsSubscriber(!!data?.isSubscriber))
+      .catch(() => setIsSubscriber(false))
+  }, [user?.id, monetizationEnabled])
+
+  const handleTabChange = (tab) => {
+    if (tab === activeTab) return
+    if (tabSwitchTimerRef.current) clearTimeout(tabSwitchTimerRef.current)
+    setTabSwitching(true)
+    setActiveTab(tab)
+    tabSwitchTimerRef.current = setTimeout(() => {
+      setTabSwitching(false)
+      tabSwitchTimerRef.current = null
+    }, 280)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (tabSwitchTimerRef.current) clearTimeout(tabSwitchTimerRef.current)
+    }
+  }, [])
+
+  // Load playlists when Add to playlist modal is open (subscriber only)
+  useEffect(() => {
+    if (!addToPlaylistWorkId || !user?.id || !isSubscriber) return
+    setPlaylistsLoading(true)
+    getMyPlaylists(user.id)
+      .then((list) => setPlaylists(Array.isArray(list) ? list : []))
+      .catch(() => setPlaylists([]))
+      .finally(() => setPlaylistsLoading(false))
+  }, [addToPlaylistWorkId, user?.id, isSubscriber])
+
+  const handleFollowAuthor = async (authorId) => {
+    if (!user?.id || !authorId) return
+    try {
+      await toggleFollowAuthor(authorId, user.id)
+      window.dispatchEvent(new CustomEvent('pennit:user-updated'))
+    } catch {
+      // no-op
+    }
+  }
+
+  const handleAddToPlaylist = async (workId, playlistId) => {
+    if (!user?.id || !workId || !playlistId) return
+    setAddToPlaylistLoading(true)
+    try {
+      await addWorkToPlaylist(user.id, playlistId, workId)
+      setAddToPlaylistWorkId(null)
+    } catch {
+      // keep modal open
+    } finally {
+      setAddToPlaylistLoading(false)
+    }
+  }
+
+  const handleCreatePlaylistAndAdd = async (workId, name) => {
+    if (!user?.id || !workId || !name?.trim()) return
+    setAddToPlaylistLoading(true)
+    try {
+      const created = await createPlaylist(user.id, { name: name.trim() })
+      await addWorkToPlaylist(user.id, created.id, workId)
+      setAddToPlaylistWorkId(null)
+      setNewPlaylistName('')
+      setShowNewPlaylistInput(false)
+    } catch {
+      // keep modal open
+    } finally {
+      setAddToPlaylistLoading(false)
+    }
+  }
 
   useEffect(() => {
     getWorks()
@@ -183,14 +274,16 @@ export default function HomePage() {
       {/* Tabs */}
       <div className="flex gap-6 border-b border-stone-200 mb-8">
         <button
-          onClick={() => setActiveTab('forYou')}
+          type="button"
+          onClick={() => handleTabChange('forYou')}
           className={`pb-4 text-sm font-medium transition-colors relative ${activeTab === 'forYou' ? 'text-stone-900' : 'text-stone-500 hover:text-stone-700'}`}
         >
           For you
           {activeTab === 'forYou' && <span className="absolute bottom-0 left-0 right-0 h-px bg-stone-900"></span>}
         </button>
         <button
-          onClick={() => setActiveTab('featured')}
+          type="button"
+          onClick={() => handleTabChange('featured')}
           className={`pb-4 text-sm font-medium transition-colors relative ${activeTab === 'featured' ? 'text-stone-900' : 'text-stone-500 hover:text-stone-700'}`}
         >
           Featured
@@ -198,35 +291,143 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* Stories Feed */}
+      {/* Stories Feed: For you = non-featured only; Featured = only admin-curated featured/editorsPick */}
       <div className="space-y-8">
-        {loading
+        {(loading || tabSwitching)
           ? Array.from({ length: 3 }).map((_, index) => <HomeSkeletonCard key={index} />)
-          : works.map((work) => {
-              const author = work.author
-              const topics = Array.isArray(work.topics) ? work.topics : []
-              return (
-                <StoryCard
-                  key={work.id}
-                  id={work.id}
-                  author={author}
-                  title={work.title}
-                  excerpt={work.excerpt}
-                  date={formatDate(work.createdAt)}
-                  reads={formatReads(work.readCount)}
-                  comments={work.commentCount ?? 0}
-                  category={work.category}
-                  publication={work.genre}
-                  topics={topics}
-                  thumbnailUrl={work.thumbnailUrl}
-                  clapCount={work.clapCount}
-                  saved={work._saved}
-                  onToggleSave={() => handleToggleSave(work.id)}
-                  disabled={!!pendingAction}
-                />
-              )
-            })}
+          : (() => {
+              const displayWorks = activeTab === 'featured'
+                ? works.filter((w) => w.featured || w.editorsPick)
+                : works.filter((w) => !w.featured && !w.editorsPick)
+              if (displayWorks.length === 0) {
+                if (activeTab === 'featured') {
+                  return (
+                    <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50/50 px-6 py-12 text-center">
+                      <p className="text-stone-500 font-medium">No featured stories yet.</p>
+                      <p className="text-stone-400 text-sm mt-1">Admins can feature writer content from the dashboard; it will appear here for readers.</p>
+                    </div>
+                  )
+                }
+                return (
+                  <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50/50 px-6 py-12 text-center">
+                    <p className="text-stone-500 font-medium">No stories in this section right now.</p>
+                    <p className="text-stone-400 text-sm mt-1">Check the Featured tab for curated picks.</p>
+                  </div>
+                )
+              }
+              const feedContent = displayWorks.map((work) => {
+                const author = work.author
+                const topics = Array.isArray(work.topics) ? work.topics : []
+                return (
+                  <StoryCard
+                    key={work.id}
+                    id={work.id}
+                    author={author}
+                    title={work.title}
+                    excerpt={work.excerpt}
+                    date={formatDate(work.createdAt)}
+                    reads={formatReads(work.readCount)}
+                    comments={work.commentCount ?? 0}
+                    category={work.category}
+                    publication={work.genre}
+                    topics={topics}
+                    thumbnailUrl={work.thumbnailUrl}
+                    clapCount={work.clapCount}
+                    saved={work._saved}
+                    onToggleSave={() => handleToggleSave(work.id)}
+                    onFollowAuthor={() => handleFollowAuthor(work.author?.id ?? work.authorId)}
+                    onAddToPlaylist={isSubscriber ? () => setAddToPlaylistWorkId(work.id) : null}
+                    disabled={!!pendingAction}
+                  />
+                )
+              })
+              const showFeaturedBlur = activeTab === 'featured' && monetizationEnabled && !isSubscriber
+              if (showFeaturedBlur) {
+                return (
+                  <div className="space-y-6">
+                    <div className="select-none pointer-events-none blur-sm space-y-8" aria-hidden>
+                      {feedContent}
+                    </div>
+                    <p className="text-stone-500 text-sm text-center">
+                      Featured content is for subscribers.{' '}
+                      <Link to="/pricing" className="font-medium text-stone-700 hover:text-stone-900 underline">
+                        Subscribe to unlock
+                      </Link>
+                    </p>
+                  </div>
+                )
+              }
+              return <div className="space-y-8">{feedContent}</div>
+            })()}
       </div>
+
+      {/* Add to playlist modal (home feed) */}
+      {addToPlaylistWorkId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => { setAddToPlaylistWorkId(null); setShowNewPlaylistInput(false); setNewPlaylistName('') }} role="dialog" aria-modal="true" aria-label="Add to playlist">
+          <div className="bg-white rounded-xl shadow-xl border border-stone-200 w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
+              <p className="text-sm font-semibold text-stone-900">Add to playlist</p>
+              <button type="button" onClick={() => { setAddToPlaylistWorkId(null); setShowNewPlaylistInput(false); setNewPlaylistName('') }} className="p-1 rounded hover:bg-stone-100 text-stone-500" aria-label="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-2.72 2.72a.75.75 0 1 0 1.06 1.06L10 11.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L11.06 10l2.72-2.72a.75.75 0 0 0-1.06-1.06L10 8.94 7.28 6.22Z" /></svg>
+              </button>
+            </div>
+            <div className="max-h-64 overflow-y-auto p-2">
+              {playlistsLoading ? (
+                <p className="px-3 py-4 text-sm text-stone-500">Loading playlists…</p>
+              ) : playlists.length === 0 && !showNewPlaylistInput ? (
+                <p className="px-3 py-4 text-sm text-stone-500">No playlists yet. Create one below.</p>
+              ) : (
+                playlists.map((pl) => (
+                  <button
+                    key={pl.id}
+                    type="button"
+                    onClick={() => handleAddToPlaylist(addToPlaylistWorkId, pl.id)}
+                    disabled={addToPlaylistLoading}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-stone-50 transition-colors text-left disabled:opacity-50"
+                  >
+                    <span className="w-4 h-4 rounded border border-stone-300 flex-shrink-0" />
+                    <span className="text-sm text-stone-700 truncate">{pl.name}</span>
+                    <span className="ml-auto text-xs text-stone-400 flex-shrink-0">{pl.workCount ?? 0}</span>
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="border-t border-stone-100 p-3">
+              {showNewPlaylistInput ? (
+                <div className="flex gap-2">
+                  <input
+                    autoFocus
+                    value={newPlaylistName}
+                    onChange={(e) => setNewPlaylistName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreatePlaylistAndAdd(addToPlaylistWorkId, newPlaylistName) }}
+                    placeholder="Playlist name…"
+                    className="flex-1 text-sm border border-stone-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleCreatePlaylistAndAdd(addToPlaylistWorkId, newPlaylistName)}
+                    disabled={!newPlaylistName.trim() || addToPlaylistLoading}
+                    className="px-3 py-1.5 rounded-lg bg-stone-900 text-white text-sm font-medium disabled:opacity-50"
+                  >
+                    {addToPlaylistLoading ? '…' : 'Create'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowNewPlaylistInput(true)}
+                  className="w-full flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900 font-medium transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+                  </svg>
+                  New playlist
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -246,6 +447,8 @@ function StoryCard({
   clapCount,
   saved,
   onToggleSave,
+  onFollowAuthor,
+  onAddToPlaylist,
   disabled,
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -383,16 +586,9 @@ function StoryCard({
                       <button
                         type="button"
                         className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-t-lg"
-                        onClick={() => setMenuOpen(false)}
+                        onClick={() => { setMenuOpen(false); onFollowAuthor?.() }}
                       >
                         Follow author
-                      </button>
-                      <button
-                        type="button"
-                        className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-none"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        Follow publication
                       </button>
                       <div className="my-1 border-t border-stone-200" />
                       <button
@@ -402,13 +598,19 @@ function StoryCard({
                       >
                         Mute author
                       </button>
-                      <button
-                        type="button"
-                        className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-none"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        Mute publication
-                      </button>
+                      {onAddToPlaylist && (
+                        <>
+                          <div className="my-1 border-t border-stone-200" />
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 rounded-none"
+                            onClick={() => { setMenuOpen(false); onAddToPlaylist() }}
+                          >
+                            Add to playlist
+                          </button>
+                        </>
+                      )}
+                      <div className="my-1 border-t border-stone-200" />
                       <button
                         type="button"
                         className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-stone-50 rounded-b-lg"

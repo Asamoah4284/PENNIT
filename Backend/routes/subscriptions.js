@@ -5,6 +5,7 @@ import Subscription from '../models/Subscription.js'
 import SubscriptionPayment from '../models/SubscriptionPayment.js'
 import * as paymentProvider from '../services/paymentProvider.js'
 import { getSubscriptionStatus } from '../services/subscriptionStatusService.js'
+import { getMonetizationEnabled } from '../services/appConfigService.js'
 
 const router = Router()
 
@@ -73,7 +74,7 @@ router.get('/me', async (req, res) => {
 /** POST /api/subscriptions - Create checkout session for a plan. Body: { planId, returnUrl?, cancelUrl? }. */
 router.post('/', async (req, res) => {
   try {
-    if (process.env.MONETIZATION_ENABLED !== 'true') {
+    if (!getMonetizationEnabled()) {
       return res.status(400).json({ error: 'Monetization is not enabled' })
     }
     const userId = resolveUserId(req)

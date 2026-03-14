@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import express from 'express'
 import cors from 'cors'
 import { connectDB } from './config/db.js'
+import { loadAppConfig } from './services/appConfigService.js'
 import configRouter from './routes/config.js'
 import worksRouter from './routes/works.js'
 import authorsRouter from './routes/authors.js'
@@ -95,6 +96,8 @@ async function start() {
     console.log('[PENNIT] Connecting to MongoDB...')
     await connectDB()
     console.log('[PENNIT] MongoDB connection established.')
+    await loadAppConfig()
+    console.log('[PENNIT] App config loaded.')
   } catch (err) {
     console.error('[PENNIT] Startup failed: database connection error.', err.message)
     process.exit(1)

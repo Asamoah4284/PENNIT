@@ -4,6 +4,7 @@ import Work from '../models/Work.js'
 import WriterEarnings from '../models/WriterEarnings.js'
 import SubscriptionPayment from '../models/SubscriptionPayment.js'
 import { getPointsForCategory, getPlatformCost } from '../lib/monetizationConfig.js'
+import { getMonetizationEnabled } from './appConfigService.js'
 
 /**
  * Get start and end of calendar month.
@@ -75,7 +76,7 @@ export async function getWriterPointsForMonth(month) {
  * @param {string} month - 'YYYY-MM'
  */
 export async function calculateAndPersistEarningsForMonth(month) {
-  if (process.env.MONETIZATION_ENABLED !== 'true') {
+  if (!getMonetizationEnabled()) {
     return
   }
 

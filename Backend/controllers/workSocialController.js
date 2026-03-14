@@ -7,6 +7,7 @@ import WorkClap from '../models/WorkClap.js'
 import SavedWork from '../models/SavedWork.js'
 import AuthorFollow from '../models/AuthorFollow.js'
 import { getSubscriberFlagsForUsers, getSubscriptionStatus } from '../services/subscriptionStatusService.js'
+import { getMonetizationEnabled } from '../services/appConfigService.js'
 import { recordInteraction } from '../services/feedScoringService.js'
 import { logActivity } from '../services/activityLog.js'
 
@@ -34,7 +35,7 @@ export async function createWorkComment(req, res) {
       return res.status(400).json({ error: 'Comment content is required' })
     }
 
-    const work = await Work.findById(workId).select('authorId')
+    const work = await Work.findById(workId).select('authorId title')
     if (!work) {
       return res.status(404).json({ error: 'Work not found' })
     }
@@ -57,6 +58,12 @@ export async function createWorkComment(req, res) {
     })
 
     await Work.updateOne({ _id: work._id }, { $inc: { commentCount: 1 } }).exec()
+
+    logActivity(userId, 'work_comment', {
+      workId: work._id.toString(),
+      workTitle: work.title,
+      commentId: comment._id.toString(),
+    }).catch(() => {})
 
     // Record interaction signal for the feed algorithm (fire-and-forget)
     const fullWork = await Work.findById(work._id).select('authorId category genre language').lean()
@@ -113,7 +120,7 @@ export async function listWorkComments(req, res) {
     }
 
     const commenterIds = comments.map((c) => c.userId?._id?.toString?.() ?? c.userId?.toString?.() ?? '').filter(Boolean)
-    const subscriberFlags = process.env.MONETIZATION_ENABLED === 'true'
+    const subscriberFlags = getMonetizationEnabled()
       ? await getSubscriberFlagsForUsers(commenterIds)
       : new Map()
 
@@ -196,7 +203,7 @@ export async function toggleWorkClap(req, res) {
       return res.status(400).json({ error: 'Invalid work ID' })
     }
 
-    const work = await Work.findById(workId).select('clapCount')
+    const work = await Work.findById(workId).select('clapCount title')
     if (!work) {
       return res.status(404).json({ error: 'Work not found' })
     }
@@ -221,6 +228,8 @@ export async function toggleWorkClap(req, res) {
     await WorkClap.create({ workId, userId })
     await Work.updateOne({ _id: workId }, { $inc: { clapCount: 1 } }).exec()
     const updated = await Work.findById(workId).select('clapCount authorId category genre language')
+
+    logActivity(userId, 'work_clap', { workId: work._id.toString(), workTitle: work.title }).catch(() => {})
 
     // Record liked=true signal for the feed algorithm (fire-and-forget)
     if (updated) {
@@ -289,7 +298,7 @@ export async function toggleSaveWork(req, res) {
       return res.status(401).json({ error: 'Authentication required to save works' })
     }
 
-    if (process.env.MONETIZATION_ENABLED === 'true') {
+    if (getMonetizationEnabled()) {
       const status = await getSubscriptionStatus(userId)
       if (!status.isSubscriber) {
         return res.status(403).json({ error: 'Subscriber access (free trial or subscription) is required to save pieces.' })
@@ -394,7 +403,7 @@ export async function trackWorkShare(req, res) {
       return res.status(400).json({ error: 'Invalid work ID' })
     }
 
-    const work = await Work.findById(workId).select('shareCount authorId category genre language')
+    const work = await Work.findById(workId).select('shareCount authorId category genre language title')
     if (!work) {
       return res.status(404).json({ error: 'Work not found' })
     }
@@ -404,6 +413,7 @@ export async function trackWorkShare(req, res) {
 
     const userId = resolveUserId(req)
     if (userId) {
+      logActivity(userId, 'work_share', { workId: work._id.toString(), workTitle: work.title }).catch(() => {})
       // Record shared=true for the personalised feed (fire-and-forget)
       recordInteraction(userId, work.toObject(), { shared: true }).catch(() => {})
     }

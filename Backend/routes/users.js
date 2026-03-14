@@ -6,6 +6,7 @@ import Author from '../models/Author.js'
 import AuthorFollow from '../models/AuthorFollow.js'
 import { getSubscriptionStatus } from '../services/subscriptionStatusService.js'
 import { logActivity } from '../services/activityLog.js'
+import { getMonetizationEnabled } from '../services/appConfigService.js'
 
 const router = Router()
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -38,7 +39,7 @@ router.get('/me', async (req, res) => {
       bio: user.bio || '',
     }
 
-    if (process.env.MONETIZATION_ENABLED === 'true') {
+    if (getMonetizationEnabled()) {
       const subStatus = await getSubscriptionStatus(user._id)
       profile.isSubscriber = subStatus.isSubscriber
       profile.trialEndsAt = subStatus.trialEndsAt

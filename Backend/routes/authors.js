@@ -7,6 +7,24 @@ import { toggleFollowAuthor } from '../controllers/workSocialController.js'
 
 const router = Router()
 
+/** GET /api/authors - List authors (public). returns popular/recent authors. */
+router.get('/', async (req, res) => {
+  try {
+    const authors = await Author.find()
+      .sort({ followerCount: -1, createdAt: -1 })
+      .limit(20)
+      .lean()
+    const formatted = authors.map((a) => ({
+      ...a,
+      id: a._id.toString(),
+    }))
+    res.json(formatted)
+  } catch (err) {
+    console.error('Error listing authors:', err)
+    res.status(500).json({ error: 'Failed to list authors' })
+  }
+})
+
 /** GET /api/authors/:id - Get author by ID with their works. Optional x-user-id returns following: true/false. */
 router.get('/:id', async (req, res) => {
   try {

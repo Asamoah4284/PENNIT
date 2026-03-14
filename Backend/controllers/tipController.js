@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 import Work from '../models/Work.js'
 import Tip from '../models/Tip.js'
 import { getSubscriptionStatus } from '../services/subscriptionStatusService.js'
+import { getMonetizationEnabled } from '../services/appConfigService.js'
 
 const TIP_MAX_GHC = 9.99
 const TIP_MIN_GHC = 0.01
@@ -25,7 +26,7 @@ function resolveUserId(req) {
  */
 export async function createWorkTip(req, res) {
   try {
-    if (process.env.MONETIZATION_ENABLED !== 'true') {
+    if (!getMonetizationEnabled()) {
       return res.status(400).json({ error: 'Tipping is not enabled' })
     }
 

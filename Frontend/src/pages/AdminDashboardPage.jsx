@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { getUser } from '../lib/auth'
 import {
-    getAdminStats, getAdminUsers, getAdminWorks,
+    getAdminStats, getAdminUsers, getAdminWorks, getAdminConfig, updateAdminConfig,
     updateAdminUserRole, deleteAdminWork, approveAdminWork, editAdminWork,
     deleteAdminUser, createAdminUser,
 } from '../lib/api'
@@ -307,6 +307,8 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
     const [createAdminConfirmPassword, setCreateAdminConfirmPassword] = useState('')
     const [createAdminError, setCreateAdminError] = useState('')
     const [createAdminSaving, setCreateAdminSaving] = useState(false)
+    const [appConfig, setAppConfig] = useState({ monetizationEnabled: false })
+    const [configSaving, setConfigSaving] = useState(false)
 
     const USERS_PAGE_SIZE = 10
     const WORKS_PAGE_SIZE = 10
@@ -314,7 +316,14 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
         const fetchData = async () => {
             setLoading(true); setError(null)
             try {
-                if (tab === 'overview') setStats(await getAdminStats(user.id))
+                if (tab === 'overview') {
+                    const [statsData, configData] = await Promise.all([
+                        getAdminStats(user.id),
+                        getAdminConfig(user.id),
+                    ])
+                    setStats(statsData)
+                    setAppConfig(configData || { monetizationEnabled: false })
+                }
                 else if (tab === 'users') {
                     const data = await getAdminUsers(user.id, { page: usersPage, limit: USERS_PAGE_SIZE })
                     setUsers(Array.isArray(data.users) ? data.users : [])
@@ -378,11 +387,27 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
         setWorks(p => p.map(w => w.id === wid ? { ...w, ...updated } : w))
         return updated
     }
+    const handleToggleFeatured = async (w) => {
+        try {
+            const updated = await editAdminWork(user.id, w.id, { featured: !w.featured })
+            setWorks(p => p.map(work => work.id === w.id ? { ...work, featured: updated.featured ?? !w.featured } : work))
+        } catch (err) { alert(err?.message ?? 'Failed to update featured') }
+    }
     const closeEdit = (updated) => {
         if (updated && typeof updated === 'object') {
             setWorks(p => p.map(w => w.id === updated.id ? { ...w, ...updated } : w))
         }
         setEditing(null)
+    }
+    const handleMonetizationToggle = async () => {
+        const next = !appConfig.monetizationEnabled
+        setConfigSaving(true)
+        try {
+            const updated = await updateAdminConfig(user.id, { monetizationEnabled: next })
+            setAppConfig(updated)
+            window.dispatchEvent(new CustomEvent('pennit:config-updated'))
+        } catch (err) { alert(err?.message ?? 'Failed to update setting') }
+        finally { setConfigSaving(false) }
     }
 
     if (error) return (
@@ -420,6 +445,37 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                     value={`GH₵ ${(stats?.totalPayouts ?? 0).toFixed(2)}`} sub="Disbursed to authors"
                     icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" /></svg>}
                 />
+            </div>
+
+            {/* Platform settings: Monetization toggle */}
+            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-[#F3F4F6]">
+                    <p className="text-[13px] font-semibold text-[#111]">Platform settings</p>
+                    <p className="text-[11px] text-[#9CA3AF] mt-0.5">Changes apply across the site immediately.</p>
+                </div>
+                <div className="p-5 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <p className="text-[13px] font-medium text-[#111]">Monetization</p>
+                        <p className="text-[12px] text-[#6B7280] mt-0.5">When on, subscriptions, paywalls, featured content, and writer earnings are active. When off, all content is free.</p>
+                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={appConfig.monetizationEnabled}
+                        disabled={configSaving}
+                        onClick={handleMonetizationToggle}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 disabled:opacity-50 ${appConfig.monetizationEnabled ? 'bg-[#6366F1]' : 'bg-[#D1D5DB]'}`}
+                    >
+                        <span
+                            className={`pointer-events-none block h-5 w-5 shrink-0 rounded-full bg-white shadow ring-0 transition-transform ${appConfig.monetizationEnabled ? 'translate-x-5' : 'translate-x-0'}`}
+                        />
+                    </button>
+                </div>
+                <div className="px-5 pb-4">
+                    <span className={`text-[12px] font-medium ${appConfig.monetizationEnabled ? 'text-green-600' : 'text-[#6B7280]'}`}>
+                        {configSaving ? 'Updating…' : appConfig.monetizationEnabled ? 'On — subscriptions and paywalls active' : 'Off — all content free'}
+                    </span>
+                </div>
             </div>
 
             {/* Charts row 1 */}
@@ -913,6 +969,16 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                 </td>
                 <td className="px-5 py-3.5"><Badge color="gray">{w.category?.replace('_', ' ') ?? '—'}</Badge></td>
                 <td className="px-5 py-3.5 text-[12px] text-[#6B7280]">{w.authorPenName || '—'}</td>
+                <td className="px-5 py-3.5">
+                    <button
+                        type="button"
+                        onClick={() => handleToggleFeatured(w)}
+                        title={w.featured ? 'Remove from featured' : 'Set as featured (shows in reader Featured section)'}
+                        className={`text-[11px] font-semibold px-2 py-1 rounded-md border transition-colors ${w.featured ? 'bg-[#6366F1] text-white border-[#6366F1]' : 'bg-white text-[#6B7280] border-[#E5E7EB] hover:border-[#6366F1] hover:text-[#6366F1]'}`}
+                    >
+                        {w.featured ? 'Featured' : 'Feature'}
+                    </button>
+                </td>
                 <td className="px-5 py-3.5 text-[13px] text-[#6B7280] font-medium tabular-nums">{(w.readCount ?? 0).toLocaleString()}</td>
                 <td className="px-5 py-3.5 text-[13px] text-[#6B7280] font-medium tabular-nums">{(w.clapCount ?? 0).toLocaleString()}</td>
                 <td className="px-5 py-3.5 text-[13px] text-[#6B7280] font-medium tabular-nums">{(w.commentCount ?? 0).toLocaleString()}</td>
@@ -1006,11 +1072,11 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                             <table className="w-full text-left min-w-[920px]">
                                 <thead>
                                     <tr className="border-b border-[#F3F4F6]">
-                                        {['Title', 'Category', 'Author', 'Reads', 'Claps', 'Comments', 'Date', ''].map(h => <th key={h} className="px-5 py-3.5 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider">{h}</th>)}
+                                        {['Title', 'Category', 'Author', 'Featured', 'Reads', 'Claps', 'Comments', 'Date', ''].map(h => <th key={h} className="px-5 py-3.5 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider">{h}</th>)}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#F9FAFB]">
-                                    {loading ? [1, 2, 3, 4].map(i => <tr key={i}>{[1, 2, 3, 4, 5, 6, 7, 8].map(j => <td key={j} className="px-5 py-4"><Skeleton className="h-3.5 w-full max-w-[120px]" /></td>)}</tr>)
+                                    {loading ? [1, 2, 3, 4].map(i => <tr key={i}>{[1, 2, 3, 4, 5, 6, 7, 8, 9].map(j => <td key={j} className="px-5 py-4"><Skeleton className="h-3.5 w-full max-w-[120px]" /></td>)}</tr>)
                                         : published.map(w => <WorkRow key={w.id} w={w} />)}
                                 </tbody>
                             </table>
@@ -1039,10 +1105,19 @@ export default function AdminDashboardPage({ tab = 'overview' }) {
                                             <p className="text-[11px] text-[#D1D5DB] mt-1">{w.authorPenName || 'Unknown author'}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-3 border-t border-[#F3F4F6]">
-                                        <span className="text-[12px] text-[#9CA3AF] font-medium">
-                                            {new Date(w.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                                        </span>
+                                    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#F3F4F6]">
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleToggleFeatured(w)}
+                                                className={`text-[11px] font-semibold px-2 py-1 rounded-md border ${w.featured ? 'bg-[#6366F1] text-white border-[#6366F1]' : 'bg-white text-[#6B7280] border-[#E5E7EB]'}`}
+                                            >
+                                                {w.featured ? 'Featured' : 'Feature'}
+                                            </button>
+                                            <span className="text-[12px] text-[#9CA3AF] font-medium">
+                                                {new Date(w.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                            </span>
+                                        </div>
                                         <div className="flex items-center gap-2">
                                             <button onClick={() => setEditing(w)} className="text-[12px] font-semibold text-[#6B7280] bg-[#F9FAFB] px-3 py-1.5 rounded-lg">Edit</button>
                                             <button onClick={() => handleDeleteWork(w.id)} className="text-[12px] font-semibold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg">Delete</button>

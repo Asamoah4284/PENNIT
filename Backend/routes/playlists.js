@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import Playlist from '../models/Playlist.js'
 import Work from '../models/Work.js'
 import { getSubscriptionStatus } from '../services/subscriptionStatusService.js'
+import { getMonetizationEnabled } from '../services/appConfigService.js'
 
 const router = Router()
 
@@ -15,7 +16,7 @@ function resolveUserId(req) {
 
 /** Check the user has subscriber access (trial or active subscription) to use playlists. */
 async function requireSubscriberAccess(userId, res) {
-  const monetizationEnabled = process.env.MONETIZATION_ENABLED === 'true'
+  const monetizationEnabled = getMonetizationEnabled()
   if (!monetizationEnabled) return true
 
   const status = await getSubscriptionStatus(userId)

@@ -37,6 +37,12 @@ export async function getWork(id) {
   return handleResponse(res)
 }
 
+/** Fetch all authors from the API */
+export async function getAuthors() {
+  const res = await fetch(`${API_BASE}/api/authors`)
+  return handleResponse(res)
+}
+
 /** Fetch an author by ID with their works. Optional userId sends x-user-id for _following in response. */
 export async function getAuthor(id, userId) {
   const headers = {}
@@ -522,6 +528,26 @@ export async function getAdminActivity(userId, params = {}) {
   if (userId) headers['x-user-id'] = userId
   const q = new URLSearchParams(params).toString()
   const res = await fetch(`${API_BASE}/api/victor-access-control/activity${q ? `?${q}` : ''}`, { headers })
+  return handleResponse(res)
+}
+
+/** GET /api/victor-access-control/config - Admin get app config (e.g. monetizationEnabled). */
+export async function getAdminConfig(userId) {
+  const headers = {}
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/victor-access-control/config`, { headers })
+  return handleResponse(res)
+}
+
+/** PATCH /api/victor-access-control/config - Admin update app config. Body: { monetizationEnabled: boolean }. */
+export async function updateAdminConfig(userId, body) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (userId) headers['x-user-id'] = userId
+  const res = await fetch(`${API_BASE}/api/victor-access-control/config`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(body),
+  })
   return handleResponse(res)
 }
 
